@@ -1,0 +1,1 @@
+/Users/henriquemeireles/Documents/Code/cronfounder/.claude/skills/gstack/design-shotgun/SKILL.md
