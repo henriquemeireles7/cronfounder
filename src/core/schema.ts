@@ -8,7 +8,7 @@
  *                       reverts hand edits (like sense overwrites status).
  */
 import { z } from "zod";
-import { HYP_ID_RE, SLUG_RE } from "../ids.js";
+import { HYP_ID_RE, PAYLOAD_FILE_RE, SLUG_RE } from "../ids.js";
 
 const isoString = z
   .string()
@@ -178,7 +178,10 @@ export const ContentMetaSchema = z.object({
   id: z.string().regex(/^C-\d{8}-[a-z0-9][a-z0-9-]{0,48}$/),
   channel: z.string().regex(SLUG_RE),
   payload_type: z.enum(["text", "image", "video", "html"]),
-  payload_file: z.string().min(1),
+  payload_file: z
+    .string()
+    .regex(PAYLOAD_FILE_RE, 'payload_file must be a bare filename (lowercase, no path separators, no leading dot)')
+    .refine((v) => !v.includes(".."), 'payload_file must not contain ".."'),
   provenance: z.object({
     task: z.number().int(),
     project: z.number().int(),

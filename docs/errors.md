@@ -122,6 +122,12 @@ Exit code legend: **1** error · **2** validation/usage · **3** gate-refused (a
 - **Cause:** the path does not exist (often deleted by hand while the ledger still references it).
 - **Fix:** check the path; if the ledger references a deleted file, run `cronfounder rebuild`.
 
+<a id="e-path-escape"></a>
+### E_PATH_ESCAPE — exit 2
+- **Problem:** a content `payload_file` resolves outside its content directory.
+- **Cause:** `payload_file` is model-authored and must be a bare filename; a path separator, `..`, or an absolute path would read or write outside the sandbox. The staging import and every read site refuse it.
+- **Fix:** set `payload_file` in the content's `meta.md` to a plain filename (e.g. `payload.txt`), then re-run.
+
 ## Gate refusals (exit 3 — the product working)
 
 <a id="e-wip-limit"></a>

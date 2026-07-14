@@ -15,6 +15,7 @@ import { selectAdapter, prepareRun, runtimeMissingError, type RunBundle } from "
 import { HATS } from "../runtime/hats.js";
 import { contentBuilderPrompt } from "../runtime/prompts.js";
 import { importStaging } from "../runtime/staging.js";
+import { containedJoin } from "../core/fm.js";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -197,8 +198,9 @@ export async function finishBuildTask(
       [`${item.id} → pending_approval (nothing side-effectful skips the gate)`],
     );
     let preview = "";
+    const previewPath = containedJoin(item.file, c.payload_file);
     try {
-      preview = (await readFile(path.join(item.file, c.payload_file), "utf8")).slice(0, 500);
+      preview = previewPath ? (await readFile(previewPath, "utf8")).slice(0, 500) : "(payload path rejected)";
     } catch {
       preview = "(payload unreadable)";
     }
