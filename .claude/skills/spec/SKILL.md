@@ -1,1 +1,0 @@
-/Users/henriquemeireles/Documents/Code/cronfounder/.claude/skills/gstack/spec/SKILL.md

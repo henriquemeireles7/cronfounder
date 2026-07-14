@@ -27,10 +27,27 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload site/ artifact
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs
+        run: npm run docs:build
+
+      - name: Assemble site (landing page at /, docs under /docs/)
+        run: |
+          mkdir -p _site/docs
+          cp -R site/. _site/
+          cp -R docs/.vitepress/dist/. _site/docs/
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment

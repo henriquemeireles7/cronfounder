@@ -25,6 +25,7 @@
     "dist",
     "templates",
     "docs",
+    "!docs/.vitepress",
     "site",
     "README.md",
     "LICENSE"
@@ -37,7 +38,11 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
-    "prepare": "npm run build"
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "prepare": "npm run build",
+    "sim": "npm run build && node scripts/sim.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -48,7 +53,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
-    "typescript": "^5.8.0",
+    "typescript": "^7.0.2",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-llms": "^1.13.3",
     "vitest": "^3.1.0"
   }
 }

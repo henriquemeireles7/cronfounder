@@ -201,6 +201,7 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
       }
 
       // ---- phase 3: first metric + spec -------------------------------------
+      let initDefaultStars: { file: string; repo: string; target: number } | null = null;
       const haveMetrics = store.ledger.db.prepare("SELECT COUNT(*) c FROM metrics").get() as { c: number };
       if (haveMetrics.c === 0) {
         if (opts.demo) {
@@ -241,6 +242,7 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
             ),
           );
           checkpoint(out, "metric", `github_stars for ${opts.repo} (target 500 by ${deadline} — edit to taste)`);
+          initDefaultStars = { file: path.join(company.paths.metrics, "github_stars.md"), repo: opts.repo, target: 500 };
         } else if (!opts.yes && process.stdin.isTTY) {
           const repo = await ask("GitHub repo for a stars metric (owner/name, enter to skip): ", "--repo <owner/name>");
           if (repo) {
@@ -281,6 +283,30 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
       if (metricsNow.c > 0) {
         const senseRes = await runSense(store, out);
         checkpoint(out, "sense", `${senseRes.readings.length} reading(s) — reality is in`);
+        // a default target below observed reality means zero gap and a dead
+        // onboarding — raise it relative to the baseline (still yours to edit)
+        const stars = initDefaultStars ? senseRes.readings.find((r) => r.metric === "github_stars") : undefined;
+        if (initDefaultStars && stars && stars.value >= initDefaultStars.target) {
+          const target = Math.ceil((stars.value * 1.5) / 50) * 50;
+          const deadline = iso(new Date(now().getTime() + 90 * 86400_000)).slice(0, 10);
+          await atomicWrite(
+            initDefaultStars.file,
+            serializeFm(
+              {
+                name: "github_stars",
+                parent: null,
+                unit: "stars",
+                direction: "increase",
+                sensor: { type: "github_stars", repo: initDefaultStars.repo },
+                spec: { target, deadline, set_by: "init", set_at: today(), baseline_value: stars.value },
+                status: null,
+              },
+              `# github_stars\n\nDevelopers voting that ${initDefaultStars.repo} deserves attention. Public API, no credential (GITHUB_TOKEN raises rate limits). Edit spec.target/deadline to your real ambition — this default (${target} by ${deadline}) is a starting point, not a strategy.\n`,
+            ),
+          );
+          await scanDocuments(store);
+          checkpoint(out, "target", `default (${initDefaultStars.target}) was below reality (${stars.value}) — raised to ${target} by ${deadline}; edit to your real ambition`);
+        }
       }
 
       // ---- phase 5: plan ------------------------------------------------------
@@ -319,23 +345,39 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
           cron: cron.lines,
         });
       }
+      // next-step hints must work as pasted: aware of how the CLI was invoked
+      // (npx cache → no `cronfounder` on PATH) and of where the user is standing
+      const bin = cron.durable ? "cronfounder" : "npx cronfounder";
+      const rel = path.relative(process.cwd(), company.dir);
+      const where = rel.startsWith("..") ? company.dir : rel;
+      const pfx = rel === "" ? "" : `cd ${where} && `;
       out.print("");
       if (fundingCard !== null) {
         out.print(sem.bold("The loop just closed for the first time. One decision is waiting:"));
         out.print("");
         out.print(renderInboxTerminal(inbox));
+        out.print("");
+        out.print(sem.dim(`decide it:  ${pfx}${bin} resolve R-${fundingCard} --approve   (or --choice <H-id> | --reject)`));
       } else if (inbox.open.length > 0) {
         out.print(renderInboxTerminal(inbox));
+        out.print("");
+        out.print(sem.dim(`work the cards:  ${pfx}${bin} inbox`));
       } else {
         out.print(sem.bold("Scaffold ready.") + " Next steps, in order:");
         out.print("  1. fill doctrine/identity.md (or re-run init with --url/--repo and a runtime)");
         out.print("  2. add a metric with a spec (metrics/EXAMPLE-github_stars.md.txt shows how)");
-        out.print("  3. cronfounder sense && cronfounder plan");
-        out.print("  4. cronfounder strategize <metric>");
+        out.print(`  3. ${pfx}${bin} sense && ${bin} plan`);
+        out.print(`  4. ${bin} strategize <metric>`);
       }
       out.print("");
-      out.print(sem.dim("install the clocks so this runs while you sleep:  cronfounder cron install"));
-      out.print(sem.dim("approvals arrive in:  cronfounder inbox   (and inbox/*.md, and .cronfounder/site/inbox.html)"));
+      out.print(sem.dim(`approvals arrive in:  ${pfx}${bin} inbox   (and inbox/*.md, and .cronfounder/site/inbox.html)`));
+      out.print(
+        sem.dim(
+          cron.durable
+            ? `install the clocks so this runs while you sleep:  ${pfx}${bin} cron install`
+            : `clocks need a durable install (the npx cache gets pruned):  npm install -g cronfounder   then: cronfounder cron install`,
+        ),
+      );
       process.exit(0);
     } finally {
       store.close();

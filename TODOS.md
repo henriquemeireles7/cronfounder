@@ -4,8 +4,8 @@ Deferred with reasons — none block the MVP proof (the loop closes, and it lear
 
 ## Launch (human-owned, invariant IV: humans own identity and capital)
 
-- [ ] **Publish to npm** — the name `cronfounder` is unclaimed; `npm publish` from the repo root makes `npx cronfounder init` canonical (the LP and README already document the working `npx github:` form). Needs the owner's npm account.
-- [ ] **Make the GitHub repo public** — the landing page's proof links (live journal, star hypothesis) and the `npx github:` install require it.
+- [x] **Publish to npm** — done: `cronfounder@0.1.0` is live; `npx cronfounder init` is canonical.
+- [ ] **Make the GitHub repo public** — the landing page's proof links (live journal, star hypothesis) require it.
 - [ ] **Enable GitHub Pages** for the site (Settings → Pages → Source: GitHub Actions; the `pages.yml` workflow is ready). Then point `cronfounder.com` at it if desired.
 - [ ] **Set up the X channel** for the dogfood company — the inbox card `company/inbox/R-1.md` has the exact steps; all three registered bets are queued behind it.
 
