@@ -61,7 +61,7 @@ Writes plausible, schema-valid artifacts with no network, no keys, no model. Pow
 
 ### `none` + dry-run — you (or your agent) are the runtime
 
-With `adapter: "none"`, commands that need thinking (`strategize`, `build`) fail with `E_RUNTIME_NONE` — unless you pass `--dry-run`. Dry-run writes the exact prompt and expected outputs into a run bundle; you do the thinking, write artifacts into the staging directory, and `cronfounder run import <run-id>` validates and imports them through the identical pipeline a live run uses. No nested runtime spawn, no API key. This is the flagship interface for an operating agent — see [operating.md](operating.md#the-dry-runimport-loop).
+With `adapter: "none"`, commands that need thinking (`strategize`, `build`) fail with `E_RUNTIME_NONE` — unless you pass `--dry-run`. Dry-run writes the exact prompt and expected outputs into a run bundle; you do the thinking, write artifacts into the staging directory, and `cronfounder run import <run-id>` validates and imports them through the identical pipeline a live run uses. No nested runtime spawn, no API key. This is the flagship interface for an operating agent — see [operating.md](operating.md).
 
 ## Credentials
 

@@ -12,3 +12,4 @@ company.db-shm
 .cronfounder/runs/
 .cronfounder/lock
 .cronfounder/site/
+.gstack/
