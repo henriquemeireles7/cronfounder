@@ -293,14 +293,14 @@ Exit code legend: **1** error · **2** validation/usage · **3** gate-refused (a
 <a id="e-sensor-unknown"></a>
 ### E_SENSOR_UNKNOWN — exit 2
 - **Problem:** the metric declares an unknown sensor type.
-- **Cause:** `sensor.type` must be one of `github_stars`, `stripe_mrr`, `mock`.
+- **Cause:** `sensor.type` must be one of `github_stars`, `stripe_mrr`, `x_post_metrics`, `mock`.
 - **Fix:** edit the metric file.
 
 <a id="e-sensor-config"></a>
-### E_SENSOR_CONFIG — exit 2 (github: bad `repo`) or 1 (mock: missing state file)
-- **Problem:** the sensor's configuration is unusable (github_stars needs `repo: "owner/name"`; mock needs its state file).
+### E_SENSOR_CONFIG — exit 2 (github/X: bad fields) or 1 (mock: missing state file)
+- **Problem:** the sensor's configuration is unusable (github_stars needs `repo: "owner/name"`; x_post_metrics needs a published content id and supported field; mock needs its state file).
 - **Cause:** missing/malformed field, or the mock channel was never seeded.
-- **Fix:** set `sensor.repo` in the metric file; or seed the mock: `echo '{"value": 10}' > .cronfounder/mock/mock.json` (`init --demo` does this for you).
+- **Fix:** set `sensor.repo`; for X set `sensor.content`, `sensor.field`, and `credential_ref: X_BEARER_TOKEN`; or seed the mock: `echo '{"value": 10}' > .cronfounder/mock/mock.json` (`init --demo` does this for you).
 
 <a id="e-sensor-network"></a>
 ### E_SENSOR_NETWORK — exit 1, retryable
@@ -310,15 +310,15 @@ Exit code legend: **1** error · **2** validation/usage · **3** gate-refused (a
 
 <a id="e-sensor-rate-limit"></a>
 ### E_SENSOR_RATE_LIMIT — exit 1, retryable
-- **Problem:** GitHub rate limit hit (HTTP 403/429).
-- **Cause:** unauthenticated requests share 60/hour per IP.
-- **Fix:** `export GITHUB_TOKEN=<a classic token with public_repo read>` — raises the limit to 5000/hour.
+- **Problem:** the sensor provider refused the read for rate, permission, or spending limits (HTTP 403/429).
+- **Cause:** GitHub unauthenticated limits, or X read permissions/rate/spending limits.
+- **Fix:** for GitHub, export `GITHUB_TOKEN`; for X, check app read permission, credits, and the spending cap.
 
 <a id="e-sensor-not-found"></a>
 ### E_SENSOR_NOT_FOUND — exit 1
-- **Problem:** the GitHub repo was not found.
-- **Cause:** renamed, made private, or wrong `owner/name`.
-- **Fix:** update `sensor.repo` (private repos need `GITHUB_TOKEN` with repo scope).
+- **Problem:** the GitHub repo, X post, or published external id was not found.
+- **Cause:** renamed/deleted/unavailable resource, wrong config, or X content that has not published successfully.
+- **Fix:** update `sensor.repo`; for X, publish the configured `sensor.content` and verify the post still exists.
 
 <a id="e-sensor-http"></a>
 ### E_SENSOR_HTTP — exit 1, retryable
@@ -346,9 +346,9 @@ Exit code legend: **1** error · **2** validation/usage · **3** gate-refused (a
 
 <a id="e-credential-rejected"></a>
 ### E_CREDENTIAL_REJECTED — exit 1
-- **Problem:** the provider rejected the credential (e.g. Stripe 401).
+- **Problem:** the provider rejected the credential (e.g. Stripe API key or X bearer token, HTTP 401).
 - **Cause:** invalid, revoked, or under-scoped key.
-- **Fix:** create a restricted key with Subscriptions: Read at https://dashboard.stripe.com/apikeys and update the env var.
+- **Fix:** replace the referenced env var with a valid, correctly scoped provider credential; Stripe MRR needs Subscriptions: Read, and X metrics need an app-only bearer token.
 
 ## Channels and drivers
 
@@ -368,7 +368,7 @@ Exit code legend: **1** error · **2** validation/usage · **3** gate-refused (a
 ### E_DRIVER_TOOL_ERROR — exit 1
 - **Problem:** the MCP tool ran and reported an error.
 - **Cause:** the tool's error text is included.
-- **Fix:** check the driver server's credentials and the `args_template` in the config.
+- **Fix:** check the driver server's credentials and the `args_template` in the config. This is a definitive failed push, not an uncertain delivery; X duplicate-content errors require changing the post text.
 
 <a id="e-push-uncertain"></a>
 ### E_PUSH_UNCERTAIN — exit 1

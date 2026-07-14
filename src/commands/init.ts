@@ -46,6 +46,11 @@ function templatesDir(): string {
   return fileURLToPath(new URL("../../templates/company", import.meta.url));
 }
 
+function bundledXMcp(): string {
+  // dist/commands/init.js -> ../x-mcp.js
+  return fileURLToPath(new URL("../x-mcp.js", import.meta.url));
+}
+
 function checkpoint(out: Out, phase: string, detail: string): void {
   out.progress(`${sem.status("✓")} ${phase.padEnd(12)} ${detail}`);
 }
@@ -82,7 +87,22 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
         currency: "usd",
         freshness_hours: 48,
         runtime: { adapter, timeout_s: 600, max_turns: 30 },
-        drivers: {},
+        drivers: {
+          x: {
+            transport: "stdio",
+            command: process.execPath,
+            args: [bundledXMcp()],
+            env_refs: ["X_API_KEY", "X_API_KEY_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"],
+            tools: {
+              push: {
+                tool: "create_post",
+                args_template: { text: "{{text}}" },
+                extract: "content.0.text",
+                timeout_s: 60,
+              },
+            },
+          },
+        },
       };
       await mkdir(path.join(dir, ".cronfounder"), { recursive: true });
       await writeFile(path.join(dir, ".cronfounder", "config.json"), JSON.stringify(config, null, 2) + "\n", "utf8");

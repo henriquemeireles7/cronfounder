@@ -24,8 +24,15 @@ export function channelReadiness(store: Store, channelId: string): Readiness {
   }
   if (!ch.driver_ref) {
     missing.push(`channels/${channelId}/setup.md has no driver_ref`);
-  } else if (!store.company.config.drivers[ch.driver_ref]) {
-    missing.push(`.cronfounder/config.json has no drivers.${ch.driver_ref} mapping (human-owned)`);
+  } else {
+    const driver = store.company.config.drivers[ch.driver_ref];
+    if (!driver) {
+      missing.push(`.cronfounder/config.json has no drivers.${ch.driver_ref} mapping (human-owned)`);
+    } else {
+      for (const ref of driver.env_refs) {
+        if (!process.env[ref]) missing.push(`driver credential env var ${ref} not set`);
+      }
+    }
   }
   return { ready: missing.length === 0, missing };
 }

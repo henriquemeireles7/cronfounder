@@ -12,6 +12,7 @@ import type { Store } from "../core/store.js";
 import type { Out } from "../output.js";
 import { sem } from "../output.js";
 import { EXIT } from "../errors.js";
+import { getDriver } from "../channels/driver.js";
 
 export interface Check {
   name: string;
@@ -100,14 +101,17 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
   }
 
   // channels
-  const channels = db.prepare("SELECT id FROM channels").all() as Array<{ id: string }>;
+  const channels = db.prepare("SELECT * FROM channels").all() as any[];
   for (const c of channels) {
     const r = channelReadiness(store, c.id);
+    const probe = r.ready && c.kind !== "mock" ? await getDriver(store.company, c).probe() : null;
+    const ready = r.ready && (probe?.ok ?? true);
+    const missing = [...r.missing, ...(probe?.missing ?? [])];
     checks.push({
       name: `channel:${c.id}`,
-      ok: r.ready,
-      detail: r.ready ? "ready" : r.missing.join("; "),
-      fix: r.ready ? undefined : `see channels/${c.id}/setup.md and docs/commands.md#drivers`,
+      ok: ready,
+      detail: ready ? "ready (driver probe passed)" : missing.join("; "),
+      fix: ready ? undefined : `see channels/${c.id}/setup.md and docs/commands.md#drivers`,
     });
   }
 

@@ -48,7 +48,7 @@ Two documented deviations: `doctor --json` with failing checks emits `{v, ok:fal
 | `CRONFOUNDER_NOW` | ISO timestamp that freezes the clock — tests, demos, agents simulating seasons |
 | `GITHUB_TOKEN` | optional; raises the github_stars rate limit from 60 to 5000 req/hour |
 | `NO_COLOR` | disables color |
-| `CRONFOUNDER_GITHUB_API`, `CRONFOUNDER_STRIPE_API` | sensor API base overrides (test fixtures) |
+| `CRONFOUNDER_GITHUB_API`, `CRONFOUNDER_STRIPE_API`, `CRONFOUNDER_X_API` | API base overrides (test fixtures) |
 
 **Interactive prompts never happen when stdin is not a TTY** — commands exit 2 (`E_NEEDS_TTY`) naming the exact flag to pass instead. A hidden prompt is a hung agent session.
 
@@ -90,7 +90,7 @@ Run every sensor. The only writer of reality (invariant I). No model calls. Fail
 - **Reads**: `metrics/*.md` sensor configs. **Writes**: `sensor_reading`/`sensor_failure` events, `status` mirror in each metric file, journal.
 - **Exit codes**: 0 (including `sense:noop` when no metrics exist), 1, 2, 4.
 - **JSON data**: `{readings: [{metric, value, measured_at}], failures: [{metric, error, code}]}`.
-- **Cost**: seconds, 0 tokens. Network per real sensor (github/stripe); the mock sensor is local.
+- **Cost**: seconds, 0 tokens. Network per real sensor (github/stripe/X); the mock sensor is local.
 
 ## plan
 
@@ -163,10 +163,10 @@ Run the bound builder for each open task of each funded project. Tasks claim und
 
 ## push `[content-id]`
 
-Publish approved content (default: all approved). The crash-consistent protocol: `push_intent` event → driver call (with idempotency key) → `publication` event. Cadence limits are enforced per channel per day (over-limit items are deferred, not failed). Every successful push opens a 60-minute watch window. An **uncertain delivery is never auto-retried**: it files an urgent decide card, and re-running push refuses (`E_PUSH_PENDING`, exit 3) while the intent is unresolved — re-pushing blindly could double-post.
+Publish approved content (default: all approved). The crash-consistent protocol: `push_intent` event → driver call (with idempotency key) → `publication` event. Cadence limits are enforced per channel per day (over-limit items are deferred, not failed). Every successful push opens a 60-minute watch window. A definitive platform refusal records `push_resolved{failed}` and leaves the content approved for correction. An **uncertain delivery is never auto-retried**: it files an urgent decide card, and re-running push refuses (`E_PUSH_PENDING`, exit 3) while the intent is unresolved — re-pushing blindly could double-post.
 
 - **Exit codes**: 0 (including `push:noop`), 1, 2, 3 (`E_GATE_UNAPPROVED`, `E_PUSH_PENDING`), 4.
-- **JSON data**: `{results: [{content, channel, external_id?, status: "published"|"uncertain"|"refused", detail?}]}`.
+- **JSON data**: `{results: [{content, channel, external_id?, status: "published"|"failed"|"uncertain"|"refused", detail?}]}`.
 - **Cost**: seconds, 0 tokens. Network via the channel driver (mock is local).
 
 ## watch
@@ -247,27 +247,27 @@ Validation failures exit 2 with `E_CONFIG_INVALID` naming the exact field.
 
 The executable mapping from a channel's three verbs to a concrete MCP server lives ONLY here, in the human-owned config. Channel `setup.md` files reference a driver by key (`driver_ref`) and are descriptive only — a model can draft `setup.md`; it cannot add an executable. The deterministic core is the MCP client; no model sits in the side-effect path.
 
-Shape, with an X example (transport is `stdio`; pick your X MCP server and map its actual tool names):
+New companies include a bundled X mapping. It runs the package's
+`dist/x-mcp.js` with Node over stdio and exposes one audited write tool:
 
 ```jsonc
 {
   "drivers": {
     "x": {
       "transport": "stdio",
-      "command": "npx",
-      "args": ["-y", "@your-choice/x-mcp-server"],
-      "env_refs": ["X_MCP_CREDENTIAL"],        // env var NAMES passed through to the server — never values
+      "command": "/path/to/node",
+      "args": ["/path/to/cronfounder/dist/x-mcp.js"],
+      "env_refs": [                            // env var NAMES — never values
+        "X_API_KEY",
+        "X_API_KEY_SECRET",
+        "X_ACCESS_TOKEN",
+        "X_ACCESS_TOKEN_SECRET"
+      ],
       "tools": {
         "push": {
           "tool": "create_post",               // the server's tool name for posting
           "args_template": { "text": "{{text}}" },
           "extract": "content.0.text",         // dot-path into the tool result → external id
-          "timeout_s": 60
-        },
-        "pull": {
-          "tool": "list_replies",
-          "args_template": { "since": "{{since}}" },
-          "extract": "content.0.signals",      // dot-path → array of {id, signal, value, at}
           "timeout_s": 60
         }
       }
@@ -281,6 +281,23 @@ Contract details:
 - **Template variables**: `push` renders `{{text}}`, `{{content}}`, `{{idempotency_key}}` into `args_template`; `pull` renders `{{since}}`. Values are strings; templates recurse through nested objects and arrays.
 - **Extraction** is dot-path with numeric indexes only (e.g. `content.0.text`) — no expressions. `push` extraction should yield the platform's post id (falls back to the idempotency key); `pull` extraction must yield an array of signal objects `{id, signal, value, at}` (non-conforming entries are dropped; `id` is used for dedup).
 - **Environment**: the driver subprocess gets a minimal passlist (PATH, HOME) plus exactly the vars named in `env_refs` and the channel's `credential_ref`. Nothing else leaks.
-- **Probes**: readiness checks that every referenced env var resolves and that the server starts and answers `listTools` within 15 s.
+- **Probes**: `doctor` checks that every referenced env var resolves and that the server starts and answers `listTools` within 15 s.
 - **Capabilities are honest**: a channel only gets the verbs its `capabilities` list declares; anything else is `E_UNSUPPORTED_CAPABILITY`. `subscribe` is implemented only by the mock driver today — declared in the ontology, deferred for real channels.
 - Wiring a driver is exactly the kind of step a `setup_channel` card walks the human through; `cronfounder doctor` verifies the result.
+
+The bundled X server signs `POST https://api.x.com/2/tweets` with OAuth 1.0a
+user context. X reads are sensors, not driver pulls. An `x_post_metrics`
+sensor resolves a published content id to its recorded X `external_id`, then
+reads `public_metrics` with the app-only `$X_BEARER_TOKEN`:
+
+```yaml
+sensor:
+  type: x_post_metrics
+  content: C-20260714-launch-post
+  field: impression_count # or like_count, retweet_count, reply_count, quote_count, bookmark_count
+  credential_ref: X_BEARER_TOKEN
+```
+
+X uses pay-per-use billing. The important guardrail is the URL surcharge:
+plain posts currently cost $0.015, while a post containing a URL costs $0.20.
+Set a spending cap in the X developer console.
