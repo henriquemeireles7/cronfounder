@@ -360,6 +360,25 @@ export class Ledger {
   }
 }
 
+/**
+ * Read-only lookup for callers that must not hold the ledger open (sensors).
+ * The publications table's shape and states are owned here, next to the
+ * projection that writes them.
+ */
+export function readPublishedExternalId(dbPath: string, contentId: string): string | undefined {
+  const db = new DatabaseSync(dbPath, { readOnly: true });
+  try {
+    const row = db
+      .prepare(
+        "SELECT external_id FROM publications WHERE content=? AND state='published' AND external_id IS NOT NULL ORDER BY at DESC LIMIT 1",
+      )
+      .get(contentId) as { external_id: string } | undefined;
+    return row?.external_id;
+  } finally {
+    db.close();
+  }
+}
+
 function refsOf(e: CfEvent & Record<string, any>): string[] {
   const refs: string[] = [];
   for (const k of ["metric", "hypothesis", "content", "subject", "request", "window", "intent"]) {

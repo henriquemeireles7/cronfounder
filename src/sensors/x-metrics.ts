@@ -1,7 +1,8 @@
-import { DatabaseSync } from "node:sqlite";
 import { CronfounderError, EXIT } from "../errors.js";
 import { iso } from "../ids.js";
 import type { Company } from "../core/company.js";
+import { readPublishedExternalId } from "../core/ledger.js";
+import { xApiBase } from "../channels/x-oauth.js";
 import { resolveCredential, type SensorDef, type SensorReading } from "./index.js";
 
 const FIELDS = ["impression_count", "like_count", "retweet_count", "reply_count", "quote_count", "bookmark_count"] as const;
@@ -19,18 +20,8 @@ export async function readXPostMetrics(company: Company, sensor: SensorDef): Pro
     });
   }
 
-  const db = new DatabaseSync(company.paths.db, { readOnly: true });
-  let publication: { external_id: string } | undefined;
-  try {
-    publication = db
-      .prepare(
-        "SELECT external_id FROM publications WHERE content=? AND state='published' AND external_id IS NOT NULL ORDER BY at DESC LIMIT 1",
-      )
-      .get(sensor.content) as { external_id: string } | undefined;
-  } finally {
-    db.close();
-  }
-  if (!publication) {
+  const externalId = readPublishedExternalId(company.paths.db, sensor.content);
+  if (!externalId) {
     throw new CronfounderError({
       code: "E_SENSOR_NOT_FOUND",
       exit: EXIT.ERROR,
@@ -41,10 +32,10 @@ export async function readXPostMetrics(company: Company, sensor: SensorDef): Pro
   }
 
   const token = resolveCredential(sensor.credential_ref, "x_post_metrics");
-  const base = (process.env.CRONFOUNDER_X_API ?? "https://api.x.com").replace(/\/$/, "");
+  const base = xApiBase();
   let response: Response;
   try {
-    response = await fetch(`${base}/2/tweets/${encodeURIComponent(publication.external_id)}?tweet.fields=public_metrics`, {
+    response = await fetch(`${base}/2/tweets/${encodeURIComponent(externalId)}?tweet.fields=public_metrics`, {
       headers: { authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(30_000),
     });
@@ -81,7 +72,7 @@ export async function readXPostMetrics(company: Company, sensor: SensorDef): Pro
     throw new CronfounderError({
       code: "E_SENSOR_NOT_FOUND",
       exit: EXIT.ERROR,
-      problem: `x_post_metrics: X post ${publication.external_id} was not found`,
+      problem: `x_post_metrics: X post ${externalId} was not found`,
       cause: "the post was deleted, made unavailable, or the publication id is wrong",
       fix: "verify the post on x.com; point sensor.content at a current publication if needed",
     });

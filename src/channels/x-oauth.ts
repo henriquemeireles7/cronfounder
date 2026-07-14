@@ -2,7 +2,12 @@ import { createHmac, randomBytes } from "node:crypto";
 
 export type OAuthParameter = readonly [string, string];
 
-export function rfc3986(value: string): string {
+/** The X API host — overridable so tests can point the driver at a local fixture. */
+export function xApiBase(): string {
+  return (process.env.CRONFOUNDER_X_API ?? "https://api.x.com").replace(/\/$/, "");
+}
+
+function rfc3986(value: string): string {
   return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
