@@ -157,7 +157,7 @@ Deferred, plainly: real channels beyond X and mock (`subscribe` is declared in t
 
 ## Status
 
-v0.1.x — the loop closes and it learns. The dogfood company in [company/](company/) is cronfounder running on cronfounder: a real sensed metric, a live journal, verdicts on schedule. That's the proof, not a promise.
+v0.2.x — the loop closes and it learns, now with a real X channel and first-class harness mounting. The dogfood company in [company/](company/) is cronfounder running on cronfounder: a real sensed metric, a live journal, verdicts on schedule. That's the proof, not a promise. Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
