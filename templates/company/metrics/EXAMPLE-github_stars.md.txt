@@ -1,0 +1,26 @@
+Copy this to metrics/github_stars.md (drop the EXAMPLE- prefix and .txt
+suffix) and edit. It is not scanned while it has this name.
+
+---
+name: github_stars
+parent: null
+unit: stars
+direction: increase
+sensor:
+  type: github_stars
+  repo: your-org/your-repo
+spec:
+  target: 500
+  deadline: "2026-10-01"
+  set_by: you
+  set_at: "2026-07-13"
+  baseline_value: null
+status: null
+---
+
+# github_stars
+
+What this number means: developers voting that the thing deserves attention.
+Causal chain: content on developer surfaces → visits → stars. The sensor
+reads the public GitHub API (no credential; set GITHUB_TOKEN to raise rate
+limits).
