@@ -127,6 +127,18 @@ export function serializeFm(data: Record<string, unknown>, body: string): string
   return `---\n${doc.toString({ lineWidth: 0 })}---\n\n${body}`;
 }
 
+/**
+ * Resolve `name` under `baseDir` and return the absolute path ONLY if it stays
+ * inside baseDir; otherwise null. Blocks `..`, absolute paths, and symlink-free
+ * traversal from model-authored path components (e.g. content payload_file).
+ */
+export function containedJoin(baseDir: string, name: string): string | null {
+  const base = path.resolve(baseDir);
+  const resolved = path.resolve(base, name);
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) return null;
+  return resolved;
+}
+
 /** Write via temp file + rename in the same directory (atomic on POSIX). */
 export async function atomicWrite(file: string, contents: string): Promise<void> {
   await mkdir(path.dirname(file), { recursive: true });

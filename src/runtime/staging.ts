@@ -11,7 +11,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { ContentMetaSchema, HypothesisSchema, schemaProblem } from "../core/schema.js";
-import { readFm } from "../core/fm.js";
+import { readFm, containedJoin } from "../core/fm.js";
 import { HYP_ID_RE, CONTENT_ID_RE } from "../ids.js";
 import type { Store } from "../core/store.js";
 import type { Hat } from "./hats.js";
@@ -186,20 +186,27 @@ export async function importStaging(store: Store, hat: Hat, stagingDir: string):
           report.rejected.push({ file: name, reason: `channel "${c.channel}" missing or does not accept "${c.payload_type}"` });
           continue;
         }
-        const payloadStaged = path.join(safe.path, c.payload_file);
+        // schema already pins payload_file to a bare filename; re-assert containment
+        // at both the staging read and the canon write (defense in depth).
+        const payloadStaged = containedJoin(safe.path, c.payload_file);
+        const targetDir = path.join(store.company.paths.content, name);
+        const payloadTarget = containedJoin(targetDir, c.payload_file);
+        if (!payloadStaged || !payloadTarget) {
+          report.rejected.push({ file: name, reason: `payload_file "${c.payload_file}" escapes the content directory` });
+          continue;
+        }
         const pst = await lstat(payloadStaged).catch(() => null);
         if (!pst || pst.isSymbolicLink() || !pst.isFile() || pst.size > MAX_ARTIFACT_BYTES) {
           report.rejected.push({ file: name, reason: `payload_file "${c.payload_file}" missing, oversized, or not a regular file` });
           continue;
         }
-        const targetDir = path.join(store.company.paths.content, name);
         const metaRaw = await readFile(metaPath, "utf8");
         const payloadRaw = await readFile(payloadStaged, "utf8");
         await store.commit(
           [store.event("agent:builder", "artifact_registered", { kind: "content", subject: c.id, path: targetDir })],
           [
             { kind: "write", file: path.join(targetDir, "meta.md"), contents: metaRaw },
-            { kind: "write", file: path.join(targetDir, c.payload_file), contents: payloadRaw },
+            { kind: "write", file: payloadTarget, contents: payloadRaw },
           ],
           [`content builder drafted ${c.id} for ${c.channel} (hypothesis ${c.provenance.hypothesis})`],
         );

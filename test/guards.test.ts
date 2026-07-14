@@ -4,10 +4,12 @@
  * json/exit-code contract, locks.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { appendFileSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { hostname } from "node:os";
 import path from "node:path";
 import { cf, demoCompany, tmpCompany, T0 } from "./helpers.js";
+import { cronLines } from "../src/commands/cron.js";
 
 const { dir: root, cleanup } = tmpCompany();
 let co: string;
@@ -74,6 +76,85 @@ describe("staging import boundary", () => {
     expect(rejected).toContain("symlink");
     expect(rejected).toContain("H-YYYYMMDD-slug");
     expect(imp.json.data.registered).toHaveLength(0);
+  });
+});
+
+describe("payload_file path traversal (staging boundary — Finding 1)", () => {
+  const { dir: troot, cleanup: tcleanup } = tmpCompany();
+  let tco: string;
+  beforeAll(() => {
+    tco = demoCompany(troot);
+  });
+  afterAll(tcleanup);
+
+  it("rejects a content payload_file that escapes its dir (relative, absolute, windows) and writes nothing outside", () => {
+    // fund the seeded demo bet → an active hypothesis with an open build task
+    expect(cf(tco, ["resolve", "R-1", "--approve"], { now: T0 }).status).toBe(0);
+    // prepare a build run WITHOUT invoking a runtime — the test owns the staging dir
+    const dry = cf(tco, ["build", "--dry-run", "--json"], { now: T0 });
+    expect(dry.status).toBe(0);
+    const bundle = dry.json.data.dry_runs[0];
+    expect(bundle).toBeTruthy();
+    const staging = bundle.staging_dir as string;
+    const rid = bundle.run_id as string;
+
+    const attacks: Array<[string, string]> = [
+      ["C-20260713-relesc", "../../.cronfounder/env"], // relative traversal into the human-owned env file
+      ["C-20260713-absesc", path.join(troot, "PWNED-abs")], // absolute path
+      ["C-20260713-winesc", "..\\..\\evil"], // windows-style separators
+    ];
+    for (const [id, pf] of attacks) {
+      const dir = path.join(staging, id);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        path.join(dir, "meta.md"),
+        `---\nid: ${id}\nchannel: mock\npayload_type: text\npayload_file: '${pf}'\nprovenance:\n  task: 1\n  project: 1\n  hypothesis: H-20260713-x\n  metric: demo_signups\n---\nbody\n`,
+      );
+      // a real regular file so it's containment — not the isFile/symlink guard — that rejects
+      writeFileSync(path.join(dir, "payload.txt"), "decoy\n");
+    }
+    const relTarget = path.join(tco, ".cronfounder", "env"); // where the relative attack would land
+    const absTarget = path.join(troot, "PWNED-abs");
+
+    const imp = cf(tco, ["run", "import", rid, "--json"], { now: T0 });
+    expect(imp.status).toBe(0);
+    // every attack rejected, naming the offending field
+    expect(imp.stderr).toContain("payload_file");
+    for (const [id] of attacks) expect(imp.stderr).toContain(id);
+    // nothing imported, and nothing written outside the content sandbox
+    expect(imp.json.data.drafted).toHaveLength(0);
+    expect(existsSync(relTarget)).toBe(false);
+    expect(existsSync(absTarget)).toBe(false);
+    expect(existsSync(path.join(tco, "content", "C-20260713-relesc"))).toBe(false);
+  });
+});
+
+describe("cron line shell-quoting (Finding 2)", () => {
+  // parse a POSIX shell command line and return stdout (proves how a shell tokenizes it)
+  const shParse = (script: string) => spawnSync("/bin/sh", ["-c", script], { encoding: "utf8" }).stdout;
+
+  it("a company dir with a space and a single quote round-trips through the shell as one --company arg", () => {
+    const dir = "/home/u/acme's co dir";
+    const { lines } = cronLines(dir);
+    const watch = lines.find((l) => l.startsWith("*/10"))!;
+    const cmd = watch.slice(watch.indexOf("/bin/sh")); // "/bin/sh -c '<arg>'"
+    // unwrap the OUTER /bin/sh -c '<arg>' → the inner script the wrapper runs
+    const inner = shParse(`printf %s ${cmd.slice("/bin/sh -c ".length)}`);
+    // pull the single-quoted --company token out of the inner script and unwrap it too
+    const token = inner.match(/--company (.*) --cron/)![1]!;
+    const companyValue = shParse(`printf %s ${token}`);
+    // the shell recovers the exact dir at both nesting levels — no quote breakout, no word-splitting
+    expect(companyValue).toBe(dir);
+  });
+
+  it("refuses (E_VALIDATION, exit 2) to build cron lines when a path contains a newline", () => {
+    try {
+      cronLines("/home/u/bad\nname");
+      expect.unreachable("cronLines must throw on a newline in the path");
+    } catch (e: any) {
+      expect(e.code).toBe("E_VALIDATION");
+      expect(e.exit).toBe(2);
+    }
   });
 });
 

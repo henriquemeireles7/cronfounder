@@ -43,6 +43,9 @@ export const SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 export const HYP_ID_RE = /^H-\d{8}-[a-z0-9][a-z0-9-]{0,48}$/;
 export const CONTENT_ID_RE = /^C-\d{8}-[a-z0-9][a-z0-9-]{0,48}$/;
 export const REQUEST_ID_RE = /^R-\d+$/;
+// payload_file is model-authored — pin it to a bare filename inside its content
+// dir: no path separators, no "..", no leading dot (mirrors the staging name guard).
+export const PAYLOAD_FILE_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
 export function slugify(s: string): string {
   return s

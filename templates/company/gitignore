@@ -13,3 +13,5 @@ company.db-shm
 
 # real secrets never live in this repo at all — only env var NAMES do
 .env
+# the cron env file is shell-sourced credentials — never commit it
+.cronfounder/env
