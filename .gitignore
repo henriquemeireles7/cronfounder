@@ -18,5 +18,9 @@ company.db-shm
 .cronfounder/site/
 .gstack/
 
-# maintainer's personal agent tooling, not part of the product
-.claude/
+# .claude/ holds the maintainer's private tooling — ignore all of it EXCEPT the
+# shared cronfounder skill symlink, so the Claude Code bridge stays version-controlled
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/cronfounder

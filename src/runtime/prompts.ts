@@ -1,5 +1,5 @@
 /**
- * Hat prompts. Every prompt layers on the company's AGENT.md (the shared
+ * Hat prompts. Every prompt layers on the company's AGENTS.md (the shared
  * constitution) and embeds a machine-readable context block that both the
  * Claude runtime and the stub adapter read. Prompts contain credential
  * REFERENCES only, never secrets.
@@ -26,9 +26,9 @@ export function extractContext(prompt: string): Record<string, any> {
   }
 }
 
-async function agentMd(company: Company): Promise<string> {
+async function agentsMd(company: Company): Promise<string> {
   try {
-    return await readFile(company.paths.agentMd, "utf8");
+    return await readFile(company.paths.agentsMd, "utf8");
   } catch {
     return "";
   }
@@ -44,7 +44,7 @@ const STAGING_RULES = (staging: string) =>
 
 export async function plannerPrompt(company: Company, gapModelJson: string, staging: string): Promise<string> {
   return [
-    await agentMd(company),
+    await agentsMd(company),
     `# Hat: planner`,
     `The deterministic core has already computed the gap model below — every number, classification and trajectory is authoritative. Your job is ONE page of narration: rank what matters, note which gaps are naked / verdict-due / blocked, and ask sharp questions. Emit QUESTIONS, not work. Do not invent numbers.`,
     `Write exactly one file: ${staging}/narration.md`,
@@ -70,7 +70,7 @@ export async function strategistPrompt(
   staging: string,
 ): Promise<string> {
   return [
-    await agentMd(company),
+    await agentsMd(company),
     `# Hat: strategist`,
     `One naked gap. Produce 3–7 falsifiable, priced bets as hypothesis files. A good run WIDENS the bet space and produces zero output into the world.`,
     `Rules the schema will enforce (invalid files are rejected with reasons):`,
@@ -102,7 +102,7 @@ export async function contentBuilderPrompt(
   staging: string,
 ): Promise<string> {
   return [
-    await agentMd(company),
+    await agentsMd(company),
     `# Hat: content builder`,
     `Project-scoped execution. Produce ${ctx.count} draft(s) for channel "${ctx.channel}" (payload type: ${ctx.payload_type}).`,
     `For each draft i (1..${ctx.count}) create a directory C-${ctx.id_date}-${ctx.slug}-<i>/ containing:`,
@@ -120,7 +120,7 @@ export async function onboardingPrompt(
   staging: string,
 ): Promise<string> {
   return [
-    await agentMd(company),
+    await agentsMd(company),
     `# Hat: onboarding`,
     `Read what already exists BEFORE asking anything: ${ctx.url ? `the website ${ctx.url}, ` : ""}${ctx.repo ? `the repo ${ctx.repo}, ` : ""}whatever artifacts the context names. Draft doctrine from them.`,
     `Write exactly one file: ${staging}/identity.md — a complete draft of ICP, problem, offer, positioning, voice. Mark every field you could NOT ground in an artifact with "(fill: <specific question>)" — those become the gap interview. Contradictions between artifacts become explicit questions ("site says teams, pricing says solo — which is the ICP?").`,

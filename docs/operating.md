@@ -4,7 +4,7 @@ This document is for an AI agent operating a cronfounder company on behalf of a 
 
 Ground rules, first and non-negotiable:
 
-1. Bootstrap with `cronfounder ontology` and the ten invariants in `AGENT.md`. Treat the invariants as physics, the six nouns as the only things you may create, and the loop as your job description.
+1. Bootstrap with `cronfounder ontology` and the ten invariants in `AGENTS.md`. Treat the invariants as physics, the six nouns as the only things you may create, and the loop as your job description.
 2. Always pass `--json`. Parse the envelope, act on `data`, never scrape human-rendered text. All progress is on stderr; stdout is exactly one JSON object.
 3. Exit codes are the contract: `0` ok · `1` error · `2` your usage is wrong · `3` a gate refused · `4` busy.
 4. You are not the human. The gate belongs to the principal unless they delegated it in writing (below).
@@ -89,7 +89,7 @@ cronfounder strategize github_stars --dry-run --json
 # → data: {run_id, prompt_file, staging_dir, allowed_tools, expected_artifacts}
 ```
 
-1. Read `prompt_file`. It contains the company's AGENT.md, the hat rules, and a ```cronfounder-context``` block with the gap, channels (with `ready` flags and acceptance matrices), and recent journal verdicts.
+1. Read `prompt_file`. It contains the company's AGENTS.md, the hat rules, and a ```cronfounder-context``` block with the gap, channels (with `ready` flags and acceptance matrices), and recent journal verdicts.
 2. Do the strategist's work yourself. Write 3–7 hypothesis files into `staging_dir`, each named `H-YYYYMMDD-slug.md` with frontmatter `id` equal to the filename. Schema: [concepts.md#schemas](concepts.md#schemas). Honest economics; `confidence_source: journal` only if you cite a verdict from the context; `kill_criteria.min_delta ≠ 0`.
 3. Import: `cronfounder run import <run-id> --json`.
 

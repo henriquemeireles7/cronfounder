@@ -14,6 +14,8 @@ quickstart: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/qu
 operator contract: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/operating.md
 commands (exit codes + --json shapes): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/commands.md
 errors: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/errors.md
+harnesses (mount cronfounder in Claude Code, Codex, Devin, OpenClaw, Cursor, Hermes, Cowork): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/harnesses.md
+operator skill (Agent Skills standard, portable across harnesses): https://github.com/henriquemeireles7/cronfounder/blob/master/.agents/skills/cronfounder/SKILL.md
 live dogfood journal: https://github.com/henriquemeireles7/cronfounder/tree/master/company/journal
 star hypothesis (registered, awaiting verdict): https://github.com/henriquemeireles7/cronfounder/blob/master/company/hypotheses/H-20260713-agents-star-the-repo.md
 repo: https://github.com/henriquemeireles7/cronfounder

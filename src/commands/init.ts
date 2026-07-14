@@ -329,7 +329,8 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
       // (npx cache → no `cronfounder` on PATH) and of where the user is standing
       const bin = cron.durable ? "cronfounder" : "npx cronfounder";
       const rel = path.relative(process.cwd(), company.dir);
-      const pfx = rel === "" ? "" : `cd ${rel} && `;
+      const where = rel.startsWith("..") ? company.dir : rel;
+      const pfx = rel === "" ? "" : `cd ${where} && `;
       out.print("");
       if (fundingCard !== null) {
         out.print(sem.bold("The loop just closed for the first time. One decision is waiting:"));
