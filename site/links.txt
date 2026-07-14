@@ -1,0 +1,14 @@
+https://fonts.googleapis.com
+https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap
+https://fonts.gstatic.com
+https://github.com/henriquemeireles7/cronfounder
+https://github.com/henriquemeireles7/cronfounder/blob/master/README.md
+https://github.com/henriquemeireles7/cronfounder/blob/master/company/hypotheses/H-20260713-agents-star-the-repo.md
+https://github.com/henriquemeireles7/cronfounder/blob/master/docs/commands.md
+https://github.com/henriquemeireles7/cronfounder/blob/master/docs/errors.md
+https://github.com/henriquemeireles7/cronfounder/blob/master/docs/operating.md
+https://github.com/henriquemeireles7/cronfounder/blob/master/docs/quickstart.md
+https://github.com/henriquemeireles7/cronfounder/blob/master/src/core/schema.ts
+https://github.com/henriquemeireles7/cronfounder/issues
+https://github.com/henriquemeireles7/cronfounder/tree/master/company/journal
+https://github.com/henriquemeireles7/cronfounder/tree/master/src/sensors

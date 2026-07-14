@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+coverage/
+
+# company runtime state (never canon)
+company.db
+company.db-wal
+company.db-shm
+.cronfounder/staging/
+.cronfounder/runs/
+.cronfounder/lock
+.cronfounder/site/
+.gstack/

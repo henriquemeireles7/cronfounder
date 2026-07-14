@@ -1,0 +1,18 @@
+# TODOS
+
+Deferred with reasons — none block the MVP proof (the loop closes, and it learns).
+
+## Launch (human-owned, invariant IV: humans own identity and capital)
+
+- [ ] **Publish to npm** — the name `cronfounder` is unclaimed; `npm publish` from the repo root makes `npx cronfounder init` canonical (the LP and README already document the working `npx github:` form). Needs the owner's npm account.
+- [ ] **Make the GitHub repo public** — the landing page's proof links (live journal, star hypothesis) and the `npx github:` install require it.
+- [ ] **Enable GitHub Pages** for the site (Settings → Pages → Source: GitHub Actions; the `pages.yml` workflow is ready). Then point `cronfounder.com` at it if desired.
+- [ ] **Set up the X channel** for the dogfood company — the inbox card `company/inbox/R-1.md` has the exact steps; all three registered bets are queued behind it.
+
+## v0.2.0 candidates (spec /19's own deferrals + review-adopted deferrals)
+
+- [ ] Upgrade tooling: `upgrade plan/apply`, `backup/restore`, event upcasters, template three-way merge (version stamps + forward-refusal + the v0.1.0 golden fixture already ship, so this is retrofittable).
+- [ ] X `subscribe` verb implementation (declared with capability flags; mock implements all three verbs today).
+- [ ] Telegram/messaging approval channel (the gate riding an existing channel).
+- [ ] Web cockpit, DuckDB analytics, community playbook registry, more drivers, autonomy above the green lane.
+- [ ] Claude Code plugin + Cowork/OpenClaw skill wrappers (tracked in issues; the mount block in README works today).
