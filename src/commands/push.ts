@@ -13,6 +13,7 @@ import { fileRequest } from "../core/inbox.js";
 import type { Store } from "../core/store.js";
 import type { Out } from "../output.js";
 import { iso, now, today } from "../ids.js";
+import { containedJoin } from "../core/fm.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -99,7 +100,17 @@ export async function runPush(store: Store, out: Out, contentId?: string): Promi
     }
 
     const driver = getDriver(store.company, channel);
-    const payload = await readFile(path.join(path.dirname(c.file_path), c.payload_file), "utf8");
+    const payloadPath = containedJoin(path.dirname(c.file_path), c.payload_file);
+    if (!payloadPath) {
+      throw new CronfounderError({
+        code: "E_PATH_ESCAPE",
+        exit: EXIT.VALIDATION,
+        problem: `${c.id} payload_file "${c.payload_file}" escapes its content directory`,
+        cause: "payload_file must be a bare filename; a path separator or '..' would read outside the content dir",
+        fix: `fix payload_file in content/${c.id}/meta.md to a plain filename, then re-run push`,
+      });
+    }
+    const payload = await readFile(payloadPath, "utf8");
     const intent = `I-${randomBytes(6).toString("hex")}`;
     await store.append([store.event("core", "push_intent", { intent, content: c.id, channel: c.channel })]);
     out.progress(`pushing ${c.id} → ${c.channel}…`);

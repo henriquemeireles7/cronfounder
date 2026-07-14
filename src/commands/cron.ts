@@ -6,6 +6,7 @@
  * (lock contention exits 0 silently; catch-up semantics handle downtime).
  */
 import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, statSync, writeFileSync, chmodSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { CronfounderError, EXIT } from "../errors.js";
@@ -16,12 +17,30 @@ import { ask } from "./helpers.js";
 const MARKER_BEGIN = "# >>> cronfounder clocks >>>";
 const MARKER_END = "# <<< cronfounder clocks <<<";
 
+/** POSIX single-quote a value so a space or embedded quote can't break the /bin/sh -c line. */
+const shq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
+
 export function cronLines(companyDir: string): { lines: string[]; binPath: string; durable: boolean } {
   const node = process.execPath;
   const cli = fileURLToPath(new URL("../cli.js", import.meta.url));
   const durable = !/\/_npx\/|\/\.npm\/_cacache\/|\/tmp\//.test(cli);
   const env = path.join(companyDir, ".cronfounder", "env");
-  const wrap = (cmd: string) => `/bin/sh -c '. ${env} 2>/dev/null; ${node} ${cli} ${cmd} --company ${companyDir} --cron --quiet'`;
+  // a crontab entry is one line; single quotes are escapable, a newline is not.
+  for (const [label, v] of [["company dir", companyDir], ["node path", node], ["cli path", cli], ["env path", env]] as const) {
+    if (/[\r\n]/.test(v)) {
+      throw new CronfounderError({
+        code: "E_VALIDATION",
+        exit: EXIT.VALIDATION,
+        problem: `${label} contains a newline — refusing to build cron lines`,
+        cause: "a crontab entry is a single line; a newline in a path would corrupt the crontab",
+        fix: "move the company to a path without newline characters, then re-run cron print/install",
+      });
+    }
+  }
+  // each path is single-quoted for the inner shell, then the whole script is
+  // single-quoted for /bin/sh -c (escaping the inner quotes) — safe under spaces and quotes.
+  const wrap = (cmd: string) =>
+    `/bin/sh -c ${shq(`. ${shq(env)} 2>/dev/null; ${shq(node)} ${shq(cli)} ${cmd} --company ${shq(companyDir)} --cron --quiet`)}`;
   const lines = [
     MARKER_BEGIN,
     `# pulse (daily): reality first, diff second — sense then plan, one chained invocation`,
@@ -35,8 +54,36 @@ export function cronLines(companyDir: string): { lines: string[]; binPath: strin
   return { lines, binPath: cli, durable };
 }
 
+/** The cron env file is shell-sourced credentials — ensure it exists and is private (0600). */
+function ensureEnvFile(companyDir: string, out: Out): void {
+  const dir = path.join(companyDir, ".cronfounder");
+  const env = path.join(dir, "env");
+  if (!existsSync(env)) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      env,
+      [
+        "# cronfounder cron env — sourced by the cron clocks; keep it private (0600).",
+        "# add sensor/channel credentials as shell assignments, one per line:",
+        "#   export GITHUB_TOKEN=ghp_...",
+        "#   export STRIPE_API_KEY=sk_live_...",
+        "",
+      ].join("\n"),
+      { mode: 0o600 },
+    );
+    chmodSync(env, 0o600); // defeat a permissive umask
+    out.progress(`created ${env} (0600) — put sensor credentials there`);
+    return;
+  }
+  if ((statSync(env).mode & 0o077) !== 0) {
+    chmodSync(env, 0o600);
+    out.progress(`tightened ${env} to 0600 (it holds shell-sourced credentials)`);
+  }
+}
+
 export async function cronCommand(store: Store, out: Out, sub: string, yes: boolean): Promise<void> {
   const { lines, binPath, durable } = cronLines(store.company.dir);
+  if (sub === "print" || sub === "install") ensureEnvFile(store.company.dir, out);
   if (sub === "print") {
     out.ok("cron:print", { lines, bin: binPath, durable }, () => {
       out.print(lines.join("\n"));

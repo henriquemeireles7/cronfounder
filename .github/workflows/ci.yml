@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
 
+# least privilege: ci only checks out, builds, tests, and packs.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
