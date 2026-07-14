@@ -13,6 +13,8 @@ readme: https://github.com/henriquemeireles7/cronfounder/blob/master/README.md
 quickstart: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/quickstart.md
 operator contract: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/operating.md
 commands (exit codes + --json shapes): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/commands.md
+integrations (X channel end-to-end + MCP platforms): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/integrations.md
+media & computer use (capability vs custody): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/media-and-computer-use.md
 errors: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/errors.md
 harnesses (mount cronfounder in Claude Code, Codex, Devin, OpenClaw, Cursor, Hermes, Cowork): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/harnesses.md
 operator skill (Agent Skills standard, portable across harnesses): https://github.com/henriquemeireles7/cronfounder/blob/master/.agents/skills/cronfounder/SKILL.md
