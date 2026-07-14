@@ -117,7 +117,7 @@ export async function strategizeMetric(
 
   const adapter = selectAdapter(store.company, opts.runtime);
   if (!adapter) throw runtimeMissingError("strategize");
-  out.progress(`strategist (${adapter.name}) researching the ${metricName} gap… (this can take minutes)`);
+  out.progress(`strategist (${adapter.name}) researching the ${metricName} gap…${adapter.name === "stub" ? "" : " (this can take minutes)"}`);
   await adapter.invoke(bundle, prompt, store.company.config.runtime.timeout_s);
   return finishStrategize(store, out, metricName, bundle.staging_dir);
 }
