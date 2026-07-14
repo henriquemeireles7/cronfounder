@@ -18,19 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - name: demo loop straight from the npm registry
         run: |
           set -euo pipefail
-          WORK="$(mktemp -d)" && cd "$WORK"
-          npx -y cronfounder@latest init demo --demo --yes --quiet
-          cd demo
-          npx -y cronfounder@latest inbox --json | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);if(!j.ok||j.data.open[0]?.kind!=='approve_hypothesis')process.exit(1);console.log('funding card: '+j.data.open[0].id)})"
-          npx -y cronfounder@latest resolve R-1 --approve --quiet
-          npx -y cronfounder@latest build --quiet
-          npx -y cronfounder@latest rebuild --quiet
+          npm install -g cronfounder@latest
+          scripts/smoke-loop.sh "$(mktemp -d)" cronfounder
           echo "published package still closes the loop"
       - name: file an issue when the published package rots
         if: failure()

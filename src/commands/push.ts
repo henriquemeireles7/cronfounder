@@ -8,7 +8,7 @@
 import { randomBytes } from "node:crypto";
 import { CronfounderError, EXIT, gateRefusal } from "../errors.js";
 import { assertContentTransition } from "../core/states.js";
-import { getDriver } from "../channels/driver.js";
+import { getDriver, pushAdvisory } from "../channels/driver.js";
 import { fileRequest } from "../core/inbox.js";
 import type { Store } from "../core/store.js";
 import type { Out } from "../output.js";
@@ -111,8 +111,8 @@ export async function runPush(store: Store, out: Out, contentId?: string): Promi
       });
     }
     const payload = await readFile(payloadPath, "utf8");
-    const urlSurcharge = channel.kind === "x" && /https?:\/\//i.test(payload);
-    if (urlSurcharge) out.progress("warning: X currently charges $0.20 for a post containing a URL");
+    const advisory = pushAdvisory(channel.kind, payload);
+    if (advisory) out.progress(`warning: ${advisory}`);
     const intent = `I-${randomBytes(6).toString("hex")}`;
     await store.append([store.event("core", "push_intent", { intent, content: c.id, channel: c.channel })]);
     out.progress(`pushing ${c.id} → ${c.channel}…`);
@@ -147,7 +147,7 @@ export async function runPush(store: Store, out: Out, contentId?: string): Promi
         channel: c.channel,
         external_id: res.external_id,
         status: "published",
-        detail: urlSurcharge ? "X URL-post surcharge: $0.20 at current pay-per-use pricing" : undefined,
+        detail: advisory,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

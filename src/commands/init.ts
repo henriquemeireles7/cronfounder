@@ -201,7 +201,25 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
       }
 
       // ---- phase 3: first metric + spec -------------------------------------
-      let initDefaultStars: { file: string; repo: string; target: number } | null = null;
+      const starsFile = path.join(company.paths.metrics, "github_stars.md");
+      const starsMetric = (repo: string, spec: { target: number; deadline: string; set_by: string; baseline_value: number | null }, body?: string) =>
+        atomicWrite(
+          starsFile,
+          serializeFm(
+            {
+              name: "github_stars",
+              parent: null,
+              unit: "stars",
+              direction: "increase",
+              sensor: { type: "github_stars", repo },
+              spec: { ...spec, set_at: today() },
+              status: null,
+            },
+            body ??
+              `# github_stars\n\nDevelopers voting that ${repo} deserves attention. Public API, no credential (GITHUB_TOKEN raises rate limits). Edit spec.target/deadline to your real ambition — this default (${spec.target} by ${spec.deadline}) is a starting point, not a strategy.\n`,
+          ),
+        );
+      let wroteDefaultStars = false;
       const haveMetrics = store.ledger.db.prepare("SELECT COUNT(*) c FROM metrics").get() as { c: number };
       if (haveMetrics.c === 0) {
         if (opts.demo) {
@@ -226,43 +244,15 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
           checkpoint(out, "metric", "demo_signups: 12 → 100 in 30 days (mock sensor)");
         } else if (opts.repo) {
           const deadline = iso(new Date(now().getTime() + 90 * 86400_000)).slice(0, 10);
-          await atomicWrite(
-            path.join(company.paths.metrics, "github_stars.md"),
-            serializeFm(
-              {
-                name: "github_stars",
-                parent: null,
-                unit: "stars",
-                direction: "increase",
-                sensor: { type: "github_stars", repo: opts.repo },
-                spec: { target: 500, deadline, set_by: "init", set_at: today(), baseline_value: null },
-                status: null,
-              },
-              `# github_stars\n\nDevelopers voting that ${opts.repo} deserves attention. Public API, no credential (GITHUB_TOKEN raises rate limits). Edit spec.target/deadline to your real ambition — this default (500 by ${deadline}) is a starting point, not a strategy.\n`,
-            ),
-          );
+          await starsMetric(opts.repo, { target: 500, deadline, set_by: "init", baseline_value: null });
           checkpoint(out, "metric", `github_stars for ${opts.repo} (target 500 by ${deadline} — edit to taste)`);
-          initDefaultStars = { file: path.join(company.paths.metrics, "github_stars.md"), repo: opts.repo, target: 500 };
+          wroteDefaultStars = true;
         } else if (!opts.yes && process.stdin.isTTY) {
           const repo = await ask("GitHub repo for a stars metric (owner/name, enter to skip): ", "--repo <owner/name>");
           if (repo) {
             const target = Number((await ask("target stars [500]: ", "--yes")) || "500");
             const deadline = (await ask(`deadline [${iso(new Date(now().getTime() + 90 * 86400_000)).slice(0, 10)}]: `, "--yes")) || iso(new Date(now().getTime() + 90 * 86400_000)).slice(0, 10);
-            await atomicWrite(
-              path.join(company.paths.metrics, "github_stars.md"),
-              serializeFm(
-                {
-                  name: "github_stars",
-                  parent: null,
-                  unit: "stars",
-                  direction: "increase",
-                  sensor: { type: "github_stars", repo },
-                  spec: { target, deadline, set_by: "human", set_at: today(), baseline_value: null },
-                  status: null,
-                },
-                `# github_stars\n\nDevelopers voting that ${repo} deserves attention.\n`,
-              ),
-            );
+            await starsMetric(repo, { target, deadline, set_by: "human", baseline_value: null }, `# github_stars\n\nDevelopers voting that ${repo} deserves attention.\n`);
             checkpoint(out, "metric", `github_stars: ${target} by ${deadline}`);
           } else {
             checkpoint(out, "metric", "skipped — add one later (see metrics/EXAMPLE-github_stars.md.txt)");
@@ -283,29 +273,15 @@ export async function initCommand(dirArg: string | undefined, opts: InitOpts): P
       if (metricsNow.c > 0) {
         const senseRes = await runSense(store, out);
         checkpoint(out, "sense", `${senseRes.readings.length} reading(s) — reality is in`);
-        // a default target below observed reality means zero gap and a dead
-        // onboarding — raise it relative to the baseline (still yours to edit)
-        const stars = initDefaultStars ? senseRes.readings.find((r) => r.metric === "github_stars") : undefined;
-        if (initDefaultStars && stars && stars.value >= initDefaultStars.target) {
+        // init's own default target below observed reality means zero gap and a
+        // dead onboarding — init repairs its own guess (never a human-set value)
+        const stars = wroteDefaultStars ? senseRes.readings.find((r) => r.metric === "github_stars") : undefined;
+        if (stars && stars.value >= 500 && opts.repo) {
           const target = Math.ceil((stars.value * 1.5) / 50) * 50;
           const deadline = iso(new Date(now().getTime() + 90 * 86400_000)).slice(0, 10);
-          await atomicWrite(
-            initDefaultStars.file,
-            serializeFm(
-              {
-                name: "github_stars",
-                parent: null,
-                unit: "stars",
-                direction: "increase",
-                sensor: { type: "github_stars", repo: initDefaultStars.repo },
-                spec: { target, deadline, set_by: "init", set_at: today(), baseline_value: stars.value },
-                status: null,
-              },
-              `# github_stars\n\nDevelopers voting that ${initDefaultStars.repo} deserves attention. Public API, no credential (GITHUB_TOKEN raises rate limits). Edit spec.target/deadline to your real ambition — this default (${target} by ${deadline}) is a starting point, not a strategy.\n`,
-            ),
-          );
+          await starsMetric(opts.repo, { target, deadline, set_by: "init", baseline_value: stars.value });
           await scanDocuments(store);
-          checkpoint(out, "target", `default (${initDefaultStars.target}) was below reality (${stars.value}) — raised to ${target} by ${deadline}; edit to your real ambition`);
+          checkpoint(out, "target", `default (500) was below reality (${stars.value}) — raised to ${target} by ${deadline}; edit to your real ambition`);
         }
       }
 

@@ -2,9 +2,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { oauthAuthorization } from "./x-oauth.js";
+import { oauthAuthorization, xApiBase } from "./x-oauth.js";
 
-const API_BASE = (process.env.CRONFOUNDER_X_API ?? "https://api.x.com").replace(/\/$/, "");
+const API_BASE = xApiBase();
 
 function required(name: string): string {
   const value = process.env[name];

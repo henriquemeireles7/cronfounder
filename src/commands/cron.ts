@@ -26,7 +26,8 @@ export function cronLines(companyDir: string): { lines: string[]; binPath: strin
   const durable = !/\/_npx\/|\/\.npm\/_cacache\/|\/tmp\//.test(cli);
   const env = path.join(companyDir, ".cronfounder", "env");
   // a crontab entry is one line; single quotes are escapable, a newline is not.
-  for (const [label, v] of [["company dir", companyDir], ["node path", node], ["cli path", cli], ["env path", env]] as const) {
+  // (env derives from companyDir, so checking companyDir covers it)
+  for (const [label, v] of [["company dir", companyDir], ["node path", node], ["cli path", cli]] as const) {
     if (/[\r\n]/.test(v)) {
       throw new CronfounderError({
         code: "E_VALIDATION",

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { cf, tmpCompany, T0, CLI } from "./helpers.js";
-import { spawnSync } from "node:child_process";
+import { cf, tmpCompany, T0 } from "./helpers.js";
 import path from "node:path";
 
 /** Onboarding DX guarantees: exit-code contract, doctor states, next-step hints. */
@@ -32,13 +31,13 @@ describe("onboarding dx", () => {
   });
 
   it("unknown commands exit 2 (usage), per the contract", () => {
-    const r = spawnSync(process.execPath, [CLI, "frobnicate"], { cwd: dir, encoding: "utf8" });
+    const r = cf(dir, ["frobnicate"]);
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("unknown command");
   });
 
   it("cron knows uninstall", () => {
-    const r = spawnSync(process.execPath, [CLI, "cron", "--help"], { cwd: dir, encoding: "utf8" });
+    const r = cf(dir, ["cron", "--help"]);
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("uninstall");
   });

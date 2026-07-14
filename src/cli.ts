@@ -55,10 +55,8 @@ async function main(): Promise<void> {
     .showSuggestionAfterError(true)
     .showHelpAfterError("(the loop, the commands, the contract: cronfounder --help)")
     // usage mistakes exit 2 per the contract, not commander's default 1
-    .exitOverride((err) => {
-      if (err.exitCode === 0) process.exit(0); // help/version display
-      process.exit(err.code.startsWith("commander.") ? 2 : err.exitCode);
-    });
+    // (exitOverride only fires on commander's own errors; 0 = help/version display)
+    .exitOverride((err) => process.exit(err.exitCode === 0 ? 0 : 2));
 
   const g = () => {
     const o = program.opts();

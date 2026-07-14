@@ -65,14 +65,8 @@ jobs:
           cd "$WORK"
           npm init -y >/dev/null
           npm install "$TARBALL" >/dev/null
-          export CRONFOUNDER_NOW=2026-07-13T12:00:00Z
-          ./node_modules/.bin/cronfounder init demo --demo --yes --quiet
-          cd demo
-          ../node_modules/.bin/cronfounder inbox --json | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);if(!j.ok||j.data.open.length!==1||j.data.open[0].kind!=='approve_hypothesis'){console.error('demo loop did not reach the funding card:',d);process.exit(1)};console.log('funding card reached: '+j.data.open[0].id)})"
-          ../node_modules/.bin/cronfounder resolve R-1 --approve --quiet
-          ../node_modules/.bin/cronfounder build --quiet
-          ../node_modules/.bin/cronfounder rebuild --quiet
-          echo "tarball install closes the loop"
+          cd "$GITHUB_WORKSPACE"
+          scripts/smoke-loop.sh "$WORK" "$WORK/node_modules/.bin/cronfounder"
       - name: upload the rendered board + inbox as proof of the run
         if: always()
         uses: actions/upload-artifact@v4

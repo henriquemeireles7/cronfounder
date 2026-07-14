@@ -31,6 +31,17 @@ export interface Driver {
   subscribe(): Promise<never>;
 }
 
+/**
+ * Per-kind payload advisories — vendor pricing/policy quirks live with the
+ * channels, never in the core push loop. One copy per fact.
+ */
+export function pushAdvisory(kind: string, payload: string): string | undefined {
+  if (kind === "x" && /https?:\/\//i.test(payload)) {
+    return "X URL-post surcharge: $0.20 at current pay-per-use pricing";
+  }
+  return undefined;
+}
+
 export function unsupportedCapability(channel: string, verb: string): CronfounderError {
   return new CronfounderError({
     code: "E_UNSUPPORTED_CAPABILITY",

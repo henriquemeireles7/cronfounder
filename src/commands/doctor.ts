@@ -105,16 +105,22 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
   // channels — an unconfigured channel is pending setup, not broken: nothing
   // publishes through it until a human maps a driver (invariant IV)
   const channels = db.prepare("SELECT * FROM channels").all() as any[];
-  for (const c of channels) {
-    const r = channelReadiness(store, c.id);
-    const probe = r.ready && c.kind !== "mock" ? await getDriver(store.company, c).probe() : null;
+  // probes spawn a driver subprocess each — run them concurrently
+  const probed = await Promise.all(
+    channels.map(async (c) => {
+      const r = channelReadiness(store, c.id);
+      const probe = r.ready ? await getDriver(store.company, c).probe() : null;
+      return { c, r, probe };
+    }),
+  );
+  for (const { c, r, probe } of probed) {
     const ready = r.ready && (probe?.ok ?? true);
     const missing = [...r.missing, ...(probe?.missing ?? [])];
     checks.push({
       name: `channel:${c.id}`,
       ok: ready,
       severity: ready ? undefined : "warn",
-      detail: ready ? (probe ? "ready (driver probe passed)" : "ready") : missing.join("; "),
+      detail: ready ? "ready (driver probe passed)" : missing.join("; "),
       fix: ready ? undefined : `see channels/${c.id}/setup.md and docs/commands.md#drivers`,
     });
   }
