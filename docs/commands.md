@@ -69,7 +69,7 @@ Scaffold a company and run onboarding — the first execution of the loop, compr
 | `--repo <owner/name>` | GitHub repo: doctrine artifact + a stars metric |
 
 - **Reads**: templates, your artifacts (via the onboarding hat, runtime permitting).
-- **Writes**: the whole company scaffold (`doctrine/`, `metrics/`, `channels/`, `playbooks/`, `AGENT.md`, `.gitignore`, `.cronfounder/config.json`), git init, first events, and — when the loop closes — the first funding card.
+- **Writes**: the whole company scaffold (`doctrine/`, `metrics/`, `channels/`, `playbooks/`, `AGENTS.md`, `CLAUDE.md`, the `.agents/skills/cronfounder` operator skill, `.gitignore`, `.cronfounder/config.json`), git init, first events, and — when the loop closes — the first funding card.
 - **Exit codes**: 0, 1, 2 (`E_DIR_NOT_EMPTY`, `E_NEEDS_TTY`).
 - **JSON data**: `{dir, resumed, funding_card: "R-n"|null, inbox: InboxModel, cron: string[]}`.
 - **Cost**: `--demo` ~30–60 s, 0 tokens, offline. Real with `--url`/`--repo` + runtime: 2–10 min, one onboarding run + one strategist run. Without a runtime: seconds, prints exact next steps.
