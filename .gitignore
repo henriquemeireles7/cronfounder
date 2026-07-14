@@ -4,6 +4,10 @@ dist/
 .DS_Store
 coverage/
 
+# vitepress build output + cache (config.mts is source; these are not)
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # company runtime state (never canon)
 company.db
 company.db-wal

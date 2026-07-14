@@ -9,6 +9,7 @@ offline machine appendix: cronfounder ontology --json
 
 ontology (human): ./ontology/
 ontology (machine): ./ontology.json
+full docs (llms.txt + llms-full.txt + raw .md per page): ./docs/llms.txt
 readme: https://github.com/henriquemeireles7/cronfounder/blob/master/README.md
 quickstart: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/quickstart.md
 operator contract: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/operating.md
@@ -18,4 +19,4 @@ live dogfood journal: https://github.com/henriquemeireles7/cronfounder/tree/mast
 star hypothesis (registered, awaiting verdict): https://github.com/henriquemeireles7/cronfounder/blob/master/company/hypotheses/H-20260713-agents-star-the-repo.md
 repo: https://github.com/henriquemeireles7/cronfounder
 
-Last-updated: 2026-07-13
+Last-updated: 2026-07-14
