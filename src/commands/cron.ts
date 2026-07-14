@@ -52,12 +52,33 @@ export async function cronCommand(store: Store, out: Out, sub: string, yes: bool
       out.print(installed ? "clocks installed" : "clocks NOT installed — the loop only runs when you run it");
     });
   }
+  if (sub === "uninstall") {
+    const current = spawnSync("crontab", ["-l"], { encoding: "utf8" });
+    const existing = current.status === 0 ? String(current.stdout) : "";
+    if (!existing.includes(MARKER_BEGIN)) {
+      out.noop("cron:uninstall", "no cronfounder lines in crontab — nothing to remove");
+    }
+    const re = new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}\\n?`);
+    const write = spawnSync("crontab", ["-"], { input: existing.replace(re, ""), encoding: "utf8" });
+    if (write.status !== 0) {
+      throw new CronfounderError({
+        code: "E_CRONTAB",
+        exit: EXIT.ERROR,
+        problem: "crontab refused the update",
+        cause: write.stderr?.slice(0, 200) ?? "unknown crontab error",
+        fix: "remove by hand: crontab -e   (delete the block between the cronfounder markers)",
+      });
+    }
+    out.ok("cron:uninstall", { removed: true }, () => {
+      out.print("clocks removed — the loop now runs only when you run it. reinstall: cronfounder cron install");
+    });
+  }
   if (sub !== "install") {
     throw new CronfounderError({
       code: "E_USAGE",
       exit: EXIT.VALIDATION,
       problem: `unknown cron subcommand "${sub}"`,
-      cause: "cron takes: print | install | status",
+      cause: "cron takes: print | install | status | uninstall",
       fix: "cronfounder cron print",
     });
   }
