@@ -10,7 +10,23 @@ permissions:
   contents: read
 
 jobs:
+  # The PR lane: one OS, one node, seconds not minutes — agents iterate here.
+  # The full matrix and the release-artifact acceptance run post-merge.
   test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  matrix:
+    if: github.event_name == 'push'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,6 +38,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -29,12 +46,14 @@ jobs:
   # The release artifact — not the source tree — is the acceptance target:
   # pack a tarball, install it cold, and run the keyless demo loop from it.
   package:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
       - run: npm ci
       - run: npm pack
       - name: install tarball in a clean dir and run the demo loop
@@ -42,6 +61,7 @@ jobs:
           set -euo pipefail
           TARBALL="$PWD/$(ls cronfounder-*.tgz)"
           WORK="$(mktemp -d)"
+          echo "WORK=$WORK" >> "$GITHUB_ENV"
           cd "$WORK"
           npm init -y >/dev/null
           npm install "$TARBALL" >/dev/null
@@ -53,8 +73,17 @@ jobs:
           ../node_modules/.bin/cronfounder build --quiet
           ../node_modules/.bin/cronfounder rebuild --quiet
           echo "tarball install closes the loop"
+      - name: upload the rendered board + inbox as proof of the run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-company-views
+          path: ${{ env.WORK }}/demo/.cronfounder/site/
+          if-no-files-found: ignore
+          retention-days: 14
 
   links:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

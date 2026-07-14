@@ -18,6 +18,8 @@ export interface Check {
   ok: boolean;
   detail: string;
   fix?: string;
+  /** "warn" = setup still pending, nothing broken (○). Default: failing means broken (✗). */
+  severity?: "warn";
 }
 
 export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
@@ -99,13 +101,15 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
     }
   }
 
-  // channels
+  // channels — an unconfigured channel is pending setup, not broken: nothing
+  // publishes through it until a human maps a driver (invariant IV)
   const channels = db.prepare("SELECT id FROM channels").all() as Array<{ id: string }>;
   for (const c of channels) {
     const r = channelReadiness(store, c.id);
     checks.push({
       name: `channel:${c.id}`,
       ok: r.ready,
+      severity: r.ready ? undefined : "warn",
       detail: r.ready ? "ready" : r.missing.join("; "),
       fix: r.ready ? undefined : `see channels/${c.id}/setup.md and docs/commands.md#drivers`,
     });
@@ -117,6 +121,7 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
   checks.push({
     name: "clocks",
     ok: installed,
+    severity: installed ? undefined : "warn",
     detail: installed ? "cron lines installed" : "no cronfounder lines in crontab — the loop only runs when you run it",
     fix: "install the three clocks: cronfounder cron install   (or print them: cronfounder cron print)",
   });
@@ -124,8 +129,8 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
   // templates present (packaging sanity)
   checks.push({
     name: "package",
-    ok: existsSync(store.company.paths.agentMd),
-    detail: existsSync(store.company.paths.agentMd) ? "AGENT.md present" : "AGENT.md missing",
+    ok: existsSync(store.company.paths.agentsMd),
+    detail: existsSync(store.company.paths.agentsMd) ? "AGENTS.md present" : "AGENTS.md missing",
     fix: "re-scaffold missing files: compare against templates/company in the cronfounder package",
   });
 
@@ -134,18 +139,26 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
 
 export async function doctorCommand(store: Store, out: Out): Promise<void> {
   const checks = await runDoctor(store, out);
-  const failed = checks.filter((c) => !c.ok);
+  const broken = checks.filter((c) => !c.ok && c.severity !== "warn");
+  const pending = checks.filter((c) => !c.ok && c.severity === "warn");
   if (out.json) {
-    if (failed.length > 0) {
+    if (broken.length > 0) {
       process.stdout.write(JSON.stringify({ v: 1, ok: false, code: EXIT.ERROR, action: "doctor", data: { checks } }) + "\n");
       process.exit(EXIT.ERROR);
     }
     out.ok("doctor", { checks });
   }
   for (const c of checks) {
-    out.print(`${c.ok ? sem.status("✓") : sem.bet("✗")} ${c.name.padEnd(18)} ${c.detail}${!c.ok && c.fix ? `\n  ${sem.dim("fix: " + c.fix)}` : ""}`);
+    const mark = c.ok ? sem.status("✓") : c.severity === "warn" ? sem.spec("○") : sem.bet("✗");
+    out.print(`${mark} ${c.name.padEnd(18)} ${c.detail}${!c.ok && c.fix ? `\n  ${sem.dim("fix: " + c.fix)}` : ""}`);
   }
   out.print("");
-  out.print(failed.length === 0 ? sem.status("all checks pass — the loop can close") : sem.bet(`${failed.length} check(s) failing`));
-  process.exit(failed.length === 0 ? EXIT.OK : EXIT.ERROR);
+  if (broken.length > 0) {
+    out.print(sem.bet(`${broken.length} check(s) failing`));
+  } else if (pending.length > 0) {
+    out.print(sem.status("nothing broken — the loop can close.") + sem.dim(` ${pending.length} setup step(s) still pending (○)`));
+  } else {
+    out.print(sem.status("all checks pass — the loop can close"));
+  }
+  process.exit(broken.length === 0 ? EXIT.OK : EXIT.ERROR);
 }

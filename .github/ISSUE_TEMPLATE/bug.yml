@@ -1,0 +1,41 @@
+name: Bug report
+description: Something didn't work the way the docs or the exit code contract say it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what actually happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      description: The exact cronfounder command you ran, including flags.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: "--json output or error block"
+      description: Re-run with `--json` if you can, and paste the output. If it's an error, include its `E_` code (see docs/errors.md).
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "cronfounder doctor output"
+      render: sh
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and Node version
+      placeholder: "e.g. macOS 15.1, Node 22.13.0"
+    validations:
+      required: true

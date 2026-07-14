@@ -4,6 +4,10 @@ dist/
 .DS_Store
 coverage/
 
+# vitepress build output + cache (config.mts is source; these are not)
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # company runtime state (never canon)
 company.db
 company.db-wal
@@ -13,3 +17,13 @@ company.db-shm
 .cronfounder/lock
 .cronfounder/site/
 .gstack/
+
+# .claude/ holds the maintainer's private tooling — ignore all of it EXCEPT the
+# shared cronfounder skill symlink, so the Claude Code bridge stays version-controlled
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/cronfounder
+
+# sim data output (npm run sim)
+sim-co/
