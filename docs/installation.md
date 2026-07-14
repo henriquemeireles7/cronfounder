@@ -33,7 +33,7 @@ Good for evaluation and one-off runs; not good for cron, because the npx cache i
 git clone https://github.com/henriquemeireles7/cronfounder && cd cronfounder && npm ci && npm run build && npm link
 ```
 
-The dev setup proper (tests, layout, PR expectations) is in [CONTRIBUTING.md](../CONTRIBUTING.md).
+The dev setup proper (tests, layout, PR expectations) is in [CONTRIBUTING.md](https://github.com/henriquemeireles7/cronfounder/blob/master/CONTRIBUTING.md).
 
 ## Uninstall
 
