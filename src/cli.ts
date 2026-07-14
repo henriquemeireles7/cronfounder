@@ -45,7 +45,7 @@ async function main(): Promise<void> {
         "agents: every command takes --json; exit codes 0/1/2/3/4 are the contract.",
       ].join("\n"),
     )
-    .version("0.1.0")
+    .version("0.2.0")
     .option("--json", "machine envelope on stdout, progress on stderr", false)
     .option("--quiet", "suppress progress output", false)
     .option("--company <dir>", "company directory (default: walk up from cwd; env: CRONFOUNDER_DIR)")

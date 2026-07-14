@@ -1,6 +1,6 @@
 {
   "name": "cronfounder",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A company harness: the structured environment an agent mounts to run and grow a business. Sensors write reality, a journal remembers, gates protect your principal, and growth becomes a loop.",
   "keywords": [
     "agents",
@@ -28,6 +28,7 @@
     "!docs/.vitepress",
     "site",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {

@@ -42,3 +42,13 @@ describe("onboarding dx", () => {
     expect(r.stdout).toContain("uninstall");
   });
 });
+
+describe("release hygiene", () => {
+  it("the CLI --version matches package.json (no drift)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const pkg = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"));
+    const cli = readFileSync(fileURLToPath(new URL("../src/cli.ts", import.meta.url)), "utf8");
+    expect(cli).toContain(`.version("${pkg.version}")`);
+  });
+});
