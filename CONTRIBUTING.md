@@ -21,6 +21,8 @@ Run one file while iterating:
 npx vitest run test/unit.core.test.ts
 ```
 
+Realistic data to develop against (instead of a blank scaffold): `npm run sim` builds `./sim-co` with 15 days of history — a funded bet, a published post, readings, a computed verdict. Deterministic; re-run to reset.
+
 ## Repo map
 
 | path | what lives there |
@@ -40,7 +42,7 @@ Every change has to survive contact with the ten invariants in [README.md](READM
 ## PR expectations
 
 - Behavior changes need a test. If you fixed a bug, add the test that would have caught it.
-- `npm test` must be green before you open the PR — CI runs it on Linux and macOS, Node 22 and 24.
+- `npm test` must be green before you open the PR. The PR lane runs it once on Linux/Node 22 (fast feedback); the full Linux+macOS × Node 22/24 matrix and the packaged-tarball acceptance run post-merge.
 - Keep PRs small and focused on one thing. A PR that mixes a refactor with a behavior change is harder to review and more likely to get punted.
 - Match the existing style: no linter/formatter is enforced yet, so read the file you're editing and follow its conventions.
 - If your change touches an invariant, a command's JSON shape, or an error code, update the relevant doc (`docs/commands.md`, `docs/errors.md`, `docs/concepts.md`) in the same PR.

@@ -22,6 +22,8 @@ node dist/cli.js init /tmp/check-co --demo --yes --quiet
 cd /tmp/check-co && node <repo>/dist/cli.js inbox --json
 ```
 
+Need realistic data, not a blank scaffold? `npm run sim` builds `./sim-co` (gitignored): 15 days of history — a funded bet, a published post, sensor readings, a computed verdict. Deterministic; re-run to reset.
+
 ## Layout
 
 - `src/core/` — the deterministic machinery: ledger (node:sqlite), events, gates, gap model, locks. No model calls ever.
