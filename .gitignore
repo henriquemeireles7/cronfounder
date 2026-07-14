@@ -24,3 +24,6 @@ company.db-shm
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/cronfounder
+
+# sim data output (npm run sim)
+sim-co/

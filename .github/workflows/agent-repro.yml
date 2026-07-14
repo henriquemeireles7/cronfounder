@@ -1,0 +1,58 @@
+name: agent repro
+
+# Label an issue `agent:repro` and an agent attempts a minimal reproduction —
+# a failing test or exact commands — and comments it on the issue, so a human
+# (or the next agent) picks up the issue with the hard part already done.
+# No-ops politely when ANTHROPIC_API_KEY isn't configured.
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  repro:
+    if: github.event.label.name == 'agent:repro'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: check for api key
+        id: key
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ANTHROPIC_API_KEY not configured — skipping agent repro"
+          else
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.have == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.have == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci && npm run build
+        if: steps.key.outputs.have == 'true'
+      - uses: anthropics/claude-code-action@v1
+        if: steps.key.outputs.have == 'true'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            Issue #${{ github.event.issue.number }} in this repo was labeled agent:repro.
+            Read the issue with `gh issue view ${{ github.event.issue.number }}`.
+            Reproduce the reported behavior: prefer a minimal failing vitest test
+            (the repo runs `npm test`; a keyless company: `node dist/cli.js init /tmp/co --demo --yes`).
+            Then comment your findings on the issue with
+            `gh issue comment ${{ github.event.issue.number }} --body-file <file>`:
+            the repro steps or test, what you observed vs expected, and the likely
+            code location (file:line). If you cannot reproduce, say exactly what
+            you tried. Do not push code or open PRs.
+          claude_args: |
+            --allowedTools "Bash,Read,Grep,Glob"
