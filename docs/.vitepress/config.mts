@@ -29,6 +29,7 @@ export default defineConfig({
         items: [
           { text: 'concepts', link: '/concepts' },
           { text: 'architecture', link: '/architecture' },
+          { text: 'media & computer use', link: '/media-and-computer-use' },
         ],
       },
       {
@@ -37,6 +38,8 @@ export default defineConfig({
           { text: 'operating', link: '/operating' },
           { text: 'commands', link: '/commands' },
           { text: 'errors', link: '/errors' },
+          { text: 'integrations', link: '/integrations' },
+          { text: 'harnesses', link: '/harnesses' },
         ],
       },
     ],

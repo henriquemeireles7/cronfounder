@@ -49,12 +49,15 @@ A refusal citing an invariant (exit 3) is the product working, not a crash.
 
 - [concepts](./concepts.md) — the ontology: six nouns, three verbs, five actors, three clocks, ten invariants, schemas
 - [architecture](./architecture.md) — storage, runtime, and driver seams; crash consistency; versioning
+- [media & computer use](./media-and-computer-use.md) — capability (the client's job) vs custody (the harness's job)
 
 **Operate**
 
 - [operating](./operating.md) — the operator contract for an agent running a company for a principal
 - [commands](./commands.md) — every command, flag, JSON shape, exit code, cost; config + driver reference
 - [errors](./errors.md) — every `E_*` code with problem, cause, fix
+- [integrations](./integrations.md) — the X channel end to end, and why any MCP server can be a driver
+- [harnesses](./harnesses.md) — mount cronfounder in Claude Code, Cowork, Codex, Devin, OpenClaw, Hermes, Cursor
 
 ## Agents: theory → practice
 
