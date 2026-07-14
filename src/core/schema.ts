@@ -21,10 +21,14 @@ export const MetricSchema = z.object({
   unit: z.string().min(1),
   direction: z.enum(["increase", "decrease"]),
   sensor: z.object({
-    type: z.enum(["github_stars", "stripe_mrr", "mock"]),
+    type: z.enum(["github_stars", "stripe_mrr", "x_post_metrics", "mock"]),
     repo: z.string().optional(), // github_stars: owner/name
     credential_ref: z.string().optional(), // env var NAME, never a secret
     channel: z.string().optional(), // mock: which channel's state file
+    content: z.string().optional(), // x_post_metrics: published cronfounder content id
+    field: z
+      .enum(["impression_count", "like_count", "retweet_count", "reply_count", "quote_count", "bookmark_count"])
+      .optional(),
   }),
   spec: z
     .object({

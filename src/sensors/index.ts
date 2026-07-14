@@ -8,6 +8,7 @@ import type { Company } from "../core/company.js";
 import { readGithubStars } from "./github-stars.js";
 import { readStripeMrr } from "./stripe-mrr.js";
 import { readMock } from "./mock.js";
+import { readXPostMetrics } from "./x-metrics.js";
 
 export interface SensorReading {
   value: number;
@@ -19,6 +20,8 @@ export interface SensorDef {
   repo?: string;
   credential_ref?: string;
   channel?: string;
+  content?: string;
+  field?: string;
 }
 
 export async function runSensor(company: Company, metric: string, sensor: SensorDef): Promise<SensorReading> {
@@ -29,12 +32,14 @@ export async function runSensor(company: Company, metric: string, sensor: Sensor
       return readStripeMrr(company, sensor);
     case "mock":
       return readMock(company, sensor);
+    case "x_post_metrics":
+      return readXPostMetrics(company, sensor);
     default:
       throw new CronfounderError({
         code: "E_SENSOR_UNKNOWN",
         exit: EXIT.VALIDATION,
         problem: `metric "${metric}" declares unknown sensor type "${sensor.type}"`,
-        cause: "sensor.type must be one of: github_stars, stripe_mrr, mock",
+        cause: "sensor.type must be one of: github_stars, stripe_mrr, x_post_metrics, mock",
         fix: `edit metrics/${metric}.md and set sensor.type to a supported sensor`,
       });
   }

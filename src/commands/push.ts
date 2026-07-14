@@ -21,7 +21,7 @@ export interface PushResultItem {
   content: string;
   channel: string;
   external_id?: string;
-  status: "published" | "uncertain" | "refused";
+  status: "published" | "failed" | "uncertain" | "refused";
   detail?: string;
 }
 
@@ -111,6 +111,8 @@ export async function runPush(store: Store, out: Out, contentId?: string): Promi
       });
     }
     const payload = await readFile(payloadPath, "utf8");
+    const urlSurcharge = channel.kind === "x" && /https?:\/\//i.test(payload);
+    if (urlSurcharge) out.progress("warning: X currently charges $0.20 for a post containing a URL");
     const intent = `I-${randomBytes(6).toString("hex")}`;
     await store.append([store.event("core", "push_intent", { intent, content: c.id, channel: c.channel })]);
     out.progress(`pushing ${c.id} → ${c.channel}…`);
@@ -140,9 +142,22 @@ export async function runPush(store: Store, out: Out, contentId?: string): Promi
         [{ kind: "patch", file: c.file_path, patches: { state: "published" } }],
         [`published ${c.id} on ${c.channel} (external id ${res.external_id}); watch window open until ${closesAt}`],
       );
-      results.push({ content: c.id, channel: c.channel, external_id: res.external_id, status: "published" });
+      results.push({
+        content: c.id,
+        channel: c.channel,
+        external_id: res.external_id,
+        status: "published",
+        detail: urlSurcharge ? "X URL-post surcharge: $0.20 at current pay-per-use pricing" : undefined,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      if (e instanceof CronfounderError && e.code !== "E_PUSH_UNCERTAIN") {
+        const detail = `${e.problem}: ${e.cause_}`;
+        await store.append([store.event("core", "push_resolved", { intent, outcome: "failed" })]);
+        results.push({ content: c.id, channel: c.channel, status: "failed", detail });
+        out.progress(`failed: ${c.id} — ${detail}`);
+        continue;
+      }
       await store.append([store.event("core", "push_uncertain", { intent, content: c.id, channel: c.channel, error: msg })]);
       const card = await fileRequest(
         store,

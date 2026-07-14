@@ -12,6 +12,7 @@ import type { Store } from "../core/store.js";
 import type { Out } from "../output.js";
 import { sem } from "../output.js";
 import { EXIT } from "../errors.js";
+import { getDriver } from "../channels/driver.js";
 
 export interface Check {
   name: string;
@@ -103,15 +104,18 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
 
   // channels — an unconfigured channel is pending setup, not broken: nothing
   // publishes through it until a human maps a driver (invariant IV)
-  const channels = db.prepare("SELECT id FROM channels").all() as Array<{ id: string }>;
+  const channels = db.prepare("SELECT * FROM channels").all() as any[];
   for (const c of channels) {
     const r = channelReadiness(store, c.id);
+    const probe = r.ready && c.kind !== "mock" ? await getDriver(store.company, c).probe() : null;
+    const ready = r.ready && (probe?.ok ?? true);
+    const missing = [...r.missing, ...(probe?.missing ?? [])];
     checks.push({
       name: `channel:${c.id}`,
-      ok: r.ready,
-      severity: r.ready ? undefined : "warn",
-      detail: r.ready ? "ready" : r.missing.join("; "),
-      fix: r.ready ? undefined : `see channels/${c.id}/setup.md and docs/commands.md#drivers`,
+      ok: ready,
+      severity: ready ? undefined : "warn",
+      detail: ready ? (probe ? "ready (driver probe passed)" : "ready") : missing.join("; "),
+      fix: ready ? undefined : `see channels/${c.id}/setup.md and docs/commands.md#drivers`,
     });
   }
 

@@ -151,6 +151,15 @@ export class McpDriver implements Driver {
     const isError = (result as { isError?: boolean } | undefined)?.isError === true;
     if (isError) {
       const text = dotGet(result, "content.0.text");
+      if (typeof text === "string" && text.startsWith("E_PUSH_UNCERTAIN:")) {
+        throw new CronfounderError({
+          code: "E_PUSH_UNCERTAIN",
+          exit: EXIT.ERROR,
+          problem: text.slice("E_PUSH_UNCERTAIN:".length).trim(),
+          cause: "the platform request ended without a response after it may have been delivered",
+          fix: "verify on the platform before retrying; cronfounder will file a decide card",
+        });
+      }
       throw new CronfounderError({
         code: "E_DRIVER_TOOL_ERROR",
         exit: EXIT.ERROR,
