@@ -52,7 +52,13 @@ async function main(): Promise<void> {
     .option("--cron", "scheduled invocation: lock contention exits 0 silently", false)
     .option("--runtime <adapter>", "override runtime adapter for this run (claude|stub|none)")
     .configureHelp({ sortSubcommands: false })
-    .showSuggestionAfterError(true);
+    .showSuggestionAfterError(true)
+    .showHelpAfterError("(the loop, the commands, the contract: cronfounder --help)")
+    // usage mistakes exit 2 per the contract, not commander's default 1
+    .exitOverride((err) => {
+      if (err.exitCode === 0) process.exit(0); // help/version display
+      process.exit(err.code.startsWith("commander.") ? 2 : err.exitCode);
+    });
 
   const g = () => {
     const o = program.opts();
@@ -234,10 +240,16 @@ async function main(): Promise<void> {
     });
 
   const cronCmd = program.command("cron").description("the three clocks (pulse, reflex, season) as crontab lines");
-  for (const sub of ["print", "install", "status"] as const) {
+  const cronDesc: Record<string, string> = {
+    print: "print the crontab lines (never installs silently)",
+    install: "install/update the lines in your crontab",
+    status: "are the clocks installed?",
+    uninstall: "remove the cronfounder lines from your crontab",
+  };
+  for (const sub of ["print", "install", "status", "uninstall"] as const) {
     cronCmd
       .command(sub)
-      .description(sub === "print" ? "print the crontab lines (never installs silently)" : sub === "install" ? "install/update the lines in your crontab" : "are the clocks installed?")
+      .description(cronDesc[sub]!)
       .option("--yes", "do not prompt (agent mode)")
       .action(async (opts: Record<string, unknown>) => {
         const { cronCommand } = await import("./commands/cron.js");

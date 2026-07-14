@@ -207,7 +207,7 @@ Pulse runs `sense && plan`, reflex runs `watch` (no-ops instantly when no window
 cronfounder doctor
 ```
 
-Checks node floor, config, ledger, event-log integrity, runtime binary AND auth, every credential ref, channel readiness, and whether the clocks are installed. Exit 0 means the loop can close.
+Checks node floor, config, ledger, event-log integrity, runtime binary AND auth, every credential ref, channel readiness, and whether the clocks are installed. Exit 0 means the loop can close — `○` marks setup still pending (an unwired channel, uninstalled clocks), `✗` marks something actually broken.
 
 ### Honest costs per step (Track B)
 

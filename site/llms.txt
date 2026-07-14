@@ -2,13 +2,13 @@
 
 cronfounder is a company harness: the structured environment an agent mounts to run and grow a business — sensors write reality, an append-only journal remembers, gates protect the principal, growth becomes a loop.
 
-install: npx github:henriquemeireles7/cronfounder init my-co
-  (canonical `npx cronfounder` arrives with the npm publish; the GitHub form works today)
-demo, no keys, 60s: npx github:henriquemeireles7/cronfounder init demo --demo
+install: npm install -g cronfounder   (or no-install: npx cronfounder …)
+demo, no keys, 60s: npx cronfounder init demo-co --demo
 offline machine appendix: cronfounder ontology --json
 
 ontology (human): ./ontology/
 ontology (machine): ./ontology.json
+full docs (llms.txt + llms-full.txt + raw .md per page): ./docs/llms.txt
 readme: https://github.com/henriquemeireles7/cronfounder/blob/master/README.md
 quickstart: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/quickstart.md
 operator contract: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/operating.md

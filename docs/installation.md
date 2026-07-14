@@ -9,30 +9,45 @@
 
 ## Install paths
 
-### Path A — clone, build, link (recommended; durable)
+### Path A — npm global (canonical; durable)
 
 ```sh
-git clone https://github.com/henriquemeireles7/cronfounder && cd cronfounder && npm install && npm run build && npm link
+npm install -g cronfounder
 ```
 
-This puts a `cronfounder` binary on your PATH at a stable location. This is the path to use if you intend to install the clocks (`cron install`).
+This puts a `cronfounder` binary on your PATH at a stable location. This is the path to use if you intend to install the clocks (`cron install`). Upgrade later with `npm update -g cronfounder`.
 
-If `npm link` fails with a permissions error, either configure a user-writable npm prefix (`npm config set prefix ~/.npm-global` and add `~/.npm-global/bin` to PATH) or install globally from the checkout: `npm install -g .`
+If it fails with a permissions error, configure a user-writable npm prefix (`npm config set prefix ~/.npm-global` and add `~/.npm-global/bin` to PATH) and retry.
 
-### Path B — npx straight from git
+### Path B — npx, no install
 
 ```sh
-npx github:henriquemeireles7/cronfounder init my-co --demo
+npx cronfounder init my-co --demo
 ```
 
-npx clones, runs the `prepare` script (which builds `dist/`), and executes the CLI. Good for evaluation; not good for cron, because the npx cache is pruned without warning.
+Good for evaluation and one-off runs; not good for cron, because the npx cache is pruned without warning (`cron install` refuses it — see below).
 
-`npx cronfounder` becomes the canonical one-liner once the package is published to npm. Publishing is deliberately a human act (invariant IV: humans own accounts) and is the one open launch TODO.
+### Path C — from git (contributors)
+
+```sh
+git clone https://github.com/henriquemeireles7/cronfounder && cd cronfounder && npm ci && npm run build && npm link
+```
+
+The dev setup proper (tests, layout, PR expectations) is in [CONTRIBUTING.md](https://github.com/henriquemeireles7/cronfounder/blob/master/CONTRIBUTING.md).
+
+## Uninstall
+
+```sh
+cronfounder cron uninstall   # removes the three clock lines from your crontab
+npm rm -g cronfounder        # removes the CLI
+```
+
+Your company directories are plain files + git and belong to you — keep them, or delete them, nothing else is left behind. (npx users: `npm cache clean --force` clears the npx cache too, but it prunes itself anyway.)
 
 <a id="durable-install"></a>
 ## Durable install (required before cron)
 
-`cronfounder cron print` generates crontab lines with **absolute paths** to the current `node` binary and the installed `cli.js`. If that `cli.js` resolves into an npx or temp cache (`/_npx/`, `.npm/_cacache/`, `/tmp/`), `cron install` refuses with `E_EPHEMERAL_BIN` — an npx cache gets pruned, and the clocks would die silently weeks later. Install via Path A (or `npm install -g <path-or-package>`), then re-run `cronfounder cron install`.
+`cronfounder cron print` generates crontab lines with **absolute paths** to the current `node` binary and the installed `cli.js`. If that `cli.js` resolves into an npx or temp cache (`/_npx/`, `.npm/_cacache/`, `/tmp/`), `cron install` refuses with `E_EPHEMERAL_BIN` — an npx cache gets pruned, and the clocks would die silently weeks later. Install via Path A (`npm install -g cronfounder`), then re-run `cronfounder cron install`.
 
 `cron status` and `cron print` both report whether the current binary path is durable.
 

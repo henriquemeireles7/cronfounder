@@ -78,9 +78,11 @@ Scaffold a company and run onboarding — the first execution of the loop, compr
 
 Every check that silently kills the loop: node floor, config, ledger schema, event-log integrity (torn lines), single-writer topology, runtime binary AND auth (one cheap 1-turn test invocation), every sensor credential ref, channel readiness (probed), cron installation, packaging sanity.
 
+Checks have three states: `✓` passing, `✗` broken (fails the run), and `○` setup pending (`severity: "warn"` — an unconfigured channel or uninstalled clocks; nothing is broken, the loop still closes without them).
+
 - **Reads**: everything. **Writes**: nothing. Read-only, no lock.
-- **Exit codes**: 0 all pass, 1 otherwise. 2 (`E_NO_COMPANY`).
-- **JSON data**: `{checks: [{name, ok, detail, fix?}]}` — emitted with `ok:false, code:1` when any check fails.
+- **Exit codes**: 0 when nothing is broken (pending ○ checks don't fail), 1 otherwise. 2 (`E_NO_COMPANY`).
+- **JSON data**: `{checks: [{name, ok, detail, fix?, severity?}]}` — emitted with `ok:false, code:1` only when a non-warn check fails.
 - **Cost**: seconds; network only for the runtime auth probe (skipped unless adapter is `claude`).
 
 ## sense
@@ -201,12 +203,12 @@ The dry-run loop's second half — the agent-native interface. `run list` shows 
 - **JSON data**: `list` → `{runs: [{run_id, hat, command?, imported?}]}`; `import` → the finishing command's shape (strategize result, build task result, or a generic `{imported, rejected, narration}` report).
 - **Cost**: instant, 0 tokens, offline.
 
-## cron print | install | status
+## cron print | install | status | uninstall
 
-The three clocks as crontab lines. `print` never installs; `install` asks first (or `--yes`); `status` reports. Lines use absolute node + cli paths, source `<company>/.cronfounder/env` (cron loads no shell profile), and run every command with `--company <dir> --cron --quiet` so lock contention exits 0 silently. Install refuses binaries inside npx/temp caches (`E_EPHEMERAL_BIN`) — see [installation.md#durable-install](installation.md#durable-install). Schedule: pulse `7 7 * * *` (`sense && plan`, one chained invocation), reflex `*/10 * * * *` (`watch`), season `17 8 * * *` (`verdict`). A sleeping laptop misses ticks; catch-up runs overdue work on the next tick.
+The three clocks as crontab lines. `print` never installs; `install` asks first (or `--yes`); `status` reports; `uninstall` removes exactly the marker-delimited cronfounder block (a no-op if none is installed). Lines use absolute node + cli paths, source `<company>/.cronfounder/env` (cron loads no shell profile), and run every command with `--company <dir> --cron --quiet` so lock contention exits 0 silently. Install refuses binaries inside npx/temp caches (`E_EPHEMERAL_BIN`) — see [installation.md#durable-install](installation.md#durable-install). Schedule: pulse `7 7 * * *` (`sense && plan`, one chained invocation), reflex `*/10 * * * *` (`watch`), season `17 8 * * *` (`verdict`). A sleeping laptop misses ticks; catch-up runs overdue work on the next tick.
 
 - **Exit codes**: 0, 1 (`E_CRONTAB`), 2 (`E_USAGE`, `E_EPHEMERAL_BIN`, `E_NEEDS_TTY`).
-- **JSON data**: `print` → `{lines, bin, durable}`; `status` → `{installed, durable, bin}`; `install` → `{installed, lines}`.
+- **JSON data**: `print` → `{lines, bin, durable}`; `status` → `{installed, durable, bin}`; `install` → `{installed, lines}`; `uninstall` → `{removed}`.
 - **Cost**: instant, 0 tokens, offline.
 
 ## ontology

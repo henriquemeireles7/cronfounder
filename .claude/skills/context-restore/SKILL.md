@@ -1,1 +1,0 @@
-/Users/henriquemeireles/Documents/Code/cronfounder/.claude/skills/gstack/context-restore/SKILL.md
