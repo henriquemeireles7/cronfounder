@@ -69,7 +69,7 @@ export function companyPaths(dir: string) {
     runs: path.join(dir, ".cronfounder", "runs"),
     siteOut: path.join(dir, ".cronfounder", "site"),
     mockState: path.join(dir, ".cronfounder", "mock"),
-    agentMd: path.join(dir, "AGENT.md"),
+    agentsMd: path.join(dir, "AGENTS.md"),
     doctrine: path.join(dir, "doctrine"),
     identity: path.join(dir, "doctrine", "identity.md"),
     constitution: path.join(dir, "doctrine", "constitution.md"),

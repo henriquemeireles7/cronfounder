@@ -13,3 +13,11 @@ company.db-shm
 .cronfounder/lock
 .cronfounder/site/
 .gstack/
+
+# .claude/ holds the maintainer's private skills (a sibling branch gitignores them).
+# These four lines compose with that: ignore all of .claude EXCEPT the shared
+# cronfounder skill symlink, so the Claude Code bridge stays version-controlled.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/cronfounder

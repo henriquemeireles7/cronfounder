@@ -124,8 +124,8 @@ export async function runDoctor(store: Store, out: Out): Promise<Check[]> {
   // templates present (packaging sanity)
   checks.push({
     name: "package",
-    ok: existsSync(store.company.paths.agentMd),
-    detail: existsSync(store.company.paths.agentMd) ? "AGENT.md present" : "AGENT.md missing",
+    ok: existsSync(store.company.paths.agentsMd),
+    detail: existsSync(store.company.paths.agentsMd) ? "AGENTS.md present" : "AGENTS.md missing",
     fix: "re-scaffold missing files: compare against templates/company in the cronfounder package",
   });
 
