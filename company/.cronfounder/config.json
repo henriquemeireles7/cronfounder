@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "company": "company",
+  "machine_id": "henriquemeireles-965e57",
+  "currency": "usd",
+  "freshness_hours": 48,
+  "runtime": {
+    "adapter": "claude",
+    "timeout_s": 600,
+    "max_turns": 30
+  },
+  "drivers": {}
+}

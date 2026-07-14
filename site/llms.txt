@@ -1,0 +1,21 @@
+# cronfounder
+
+cronfounder is a company harness: the structured environment an agent mounts to run and grow a business — sensors write reality, an append-only journal remembers, gates protect the principal, growth becomes a loop.
+
+install: npx github:henriquemeireles7/cronfounder init my-co
+  (canonical `npx cronfounder` arrives with the npm publish; the GitHub form works today)
+demo, no keys, 60s: npx github:henriquemeireles7/cronfounder init demo --demo
+offline machine appendix: cronfounder ontology --json
+
+ontology (human): ./ontology/
+ontology (machine): ./ontology.json
+readme: https://github.com/henriquemeireles7/cronfounder/blob/master/README.md
+quickstart: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/quickstart.md
+operator contract: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/operating.md
+commands (exit codes + --json shapes): https://github.com/henriquemeireles7/cronfounder/blob/master/docs/commands.md
+errors: https://github.com/henriquemeireles7/cronfounder/blob/master/docs/errors.md
+live dogfood journal: https://github.com/henriquemeireles7/cronfounder/tree/master/company/journal
+star hypothesis (registered, awaiting verdict): https://github.com/henriquemeireles7/cronfounder/blob/master/company/hypotheses/H-20260713-agents-star-the-repo.md
+repo: https://github.com/henriquemeireles7/cronfounder
+
+Last-updated: 2026-07-13

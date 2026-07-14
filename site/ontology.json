@@ -1,0 +1,277 @@
+{
+  "ontology": "company-loop",
+  "version": "2.0",
+  "physics": "content -> behavior_in_channels -> metrics",
+  "epistemics": "gap -> hypotheses -> one_funded -> verdict -> better_bets",
+  "resources": {
+    "doctrine": {
+      "facets": [
+        "identity",
+        "constitution"
+      ],
+      "writers": [
+        "human",
+        "agent:proposal"
+      ],
+      "readers": [
+        "*"
+      ]
+    },
+    "metric": {
+      "fields": {
+        "spec": {
+          "writers": [
+            "human",
+            "agent:proposal"
+          ]
+        },
+        "status": {
+          "writers": [
+            "sensor"
+          ]
+        },
+        "sensor": {
+          "writers": [
+            "human"
+          ]
+        },
+        "history": {
+          "writers": [
+            "sensor"
+          ],
+          "append_only": true
+        }
+      },
+      "composes_into": "metric_tree",
+      "wip_limit_active_hypotheses": 1
+    },
+    "channel": {
+      "facets": [
+        "setup",
+        "driver",
+        "skills"
+      ],
+      "interface": [
+        "pull",
+        "push",
+        "subscribe"
+      ],
+      "acceptance_matrix": [
+        "text",
+        "image",
+        "video",
+        "html"
+      ],
+      "identity_owner": "human"
+    },
+    "content": {
+      "facets": [
+        "payload",
+        "state",
+        "provenance"
+      ],
+      "state_machine": [
+        "draft",
+        "pending_approval",
+        "approved",
+        "published"
+      ],
+      "gate": "human_between_pending_and_approved",
+      "provenance": "content->task->project->hypothesis->metric"
+    },
+    "hypothesis": {
+      "facets": [
+        "claim",
+        "theory",
+        "experiment",
+        "economics",
+        "kill_criteria",
+        "verdict"
+      ],
+      "economics": {
+        "cost": [
+          "tokens",
+          "human_minutes"
+        ],
+        "readiness": {
+          "gate": true,
+          "lists": "missing[]"
+        },
+        "risk": {
+          "gate": true,
+          "levels": [
+            "none",
+            "reversible",
+            "irreversible"
+          ]
+        },
+        "confidence": {
+          "source_required": true
+        }
+      },
+      "score": "leverage = impact * confidence / cost",
+      "state_machine": [
+        "proposed",
+        "prioritized",
+        "blocked",
+        "active",
+        "measuring",
+        "validated",
+        "invalidated",
+        "paused"
+      ],
+      "activation": "human_gate | green_lane",
+      "green_lane": [
+        "cost<=budget",
+        "risk==none",
+        "ready",
+        "playbook_trust>=scheduled_with_approval"
+      ],
+      "on_activate": "compile -> projects -> tasks -> builders",
+      "kill_criteria_required": true,
+      "verdict_writer": "sensor_data_at_review_at"
+    },
+    "journal": {
+      "append_only": true,
+      "writers": [
+        "sensor",
+        "watchdog",
+        "builder",
+        "gate",
+        "verdict"
+      ]
+    }
+  },
+  "runtime_objects": {
+    "project": {
+      "parent": "hypothesis",
+      "typed": true,
+      "binds": "one_builder"
+    },
+    "task": {
+      "parent": "project",
+      "claiming": "transactional",
+      "must_trace_to": "metric_gap"
+    },
+    "inbox_request": {
+      "kinds": [
+        "approve_hypothesis",
+        "approve_content",
+        "setup_channel",
+        "provide_credential",
+        "decide"
+      ],
+      "schema": [
+        "what",
+        "why->hypothesis->metric",
+        "steps",
+        "blocking"
+      ]
+    }
+  },
+  "actors": {
+    "sensor": {
+      "clock": "pulse",
+      "intelligence": false,
+      "writes": [
+        "metric.status",
+        "metric.history",
+        "journal"
+      ]
+    },
+    "watchdog": {
+      "clock": "reflex",
+      "scope": "open_watch_windows",
+      "may": [
+        "pause_hypothesis",
+        "page_human"
+      ],
+      "judges": "harm_only"
+    },
+    "planner": {
+      "clock": "pulse",
+      "logic": "diff(spec,status) -> gap_report"
+    },
+    "strategist": {
+      "trigger": "naked_gap",
+      "harness": "research",
+      "writes": [
+        "hypothesis:proposed"
+      ],
+      "side_effects": "none"
+    },
+    "builder": {
+      "trigger": "project",
+      "scoped_to": "project",
+      "capabilities": [
+        "compose_text",
+        "generate_image",
+        "generate_video",
+        "browse_computer",
+        "ask_human"
+      ],
+      "feasibility": "channel.acceptance AND builder.capability"
+    },
+    "verdict": {
+      "clock": "season",
+      "at": "review_at",
+      "inputs": [
+        "metric_history",
+        "claim",
+        "kill_criteria"
+      ]
+    },
+    "gate": {
+      "actor": "human",
+      "interface": [
+        "inbox",
+        "board"
+      ],
+      "autonomy_ramp": [
+        "manual",
+        "draft_only",
+        "scheduled_with_approval",
+        "auto"
+      ]
+    }
+  },
+  "clocks": {
+    "reflex": "minutes_during_watch_windows",
+    "pulse": "daily: sense then plan",
+    "season": "per_hypothesis_review_at"
+  },
+  "storage": {
+    "canon": "files_in_git",
+    "ledger": "sqlite_in_repo",
+    "rule": "ledger_rebuildable_from_repo",
+    "sql_writer": "cli_core_only_never_agents"
+  },
+  "invariants": [
+    "agents write intentions; sensors write reality",
+    "journal is append-only",
+    "no side effect skips the gate",
+    "humans own identity and capital; agents own operations",
+    "files are canon; ledger is derived or transactional",
+    "every task traces to a bet; every bet to a gap",
+    "no hypothesis without kill criteria",
+    "one active hypothesis per metric",
+    "verdicts come from sensors, on schedule",
+    "risk gates cannot be bought"
+  ],
+  "loop": [
+    "sense",
+    "diff",
+    "hypothesize",
+    "fund_one",
+    "compile",
+    "build",
+    "gate",
+    "push",
+    "watch",
+    "measure",
+    "verdict",
+    "learn",
+    "sense"
+  ],
+  "bootstrap": "treat the invariants as non-negotiable, the resources as the only nouns you may create, the verbs and your granted capabilities as the only ways you may touch the world, and the loop as your job description. If a proposed action cannot be expressed in this vocabulary, file an inbox request — it is outside your mandate."
+}

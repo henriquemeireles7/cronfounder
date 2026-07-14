@@ -1,0 +1,15 @@
+# cronfounder: the ledger is DERIVED — rebuildable from files + journal.
+# Never commit it; losing it costs minutes, never meaning.
+company.db
+company.db-wal
+company.db-shm
+
+# scratch state (never canon)
+.cronfounder/staging/
+.cronfounder/runs/
+.cronfounder/lock
+.cronfounder/site/
+.cronfounder/mock/
+
+# real secrets never live in this repo at all — only env var NAMES do
+.env

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Company Loop v2 — a company that runs as code</title>
+<meta name="description" content="Part I: why growth doesn't compile and how to close the loop. Part II: the full system — six nouns, three verbs, five actors, three clocks. Part III: the implementation plan for the MVP.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAFAF7;
+  --panel:#F1F2ED;
+  --ink:#1B222B;
+  --muted:#5B6570;
+  --line:#D9DCD4;
+  --spec:#A06A00;        /* amber — desired state, intention, targets */
+  --spec-bg:#F6EBD4;
+  --status:#1E7A50;      /* green — observed state, sensed reality */
+  --status-bg:#DFEFE4;
+  --agent:#4A3F8F;       /* violet — the reconciler, the actors */
+  --agent-bg:#E8E5F4;
+  --bet:#A6383F;         /* rust — hypothesis, uncertainty, the bet */
+  --bet-bg:#F6E0E0;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --serif:'IBM Plex Serif',Georgia,serif;
+  --disp:'Space Grotesk',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{transition:none!important;opacity:1!important;transform:none!important}}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.75}
+.wrap{max-width:760px;margin:0 auto;padding:0 24px}
+.wide{max-width:980px;margin:0 auto;padding:0 24px}
+
+h1,h2,h3,h4{font-family:var(--disp);line-height:1.15}
+.path{font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--muted)}
+.term{font-family:var(--mono);font-size:.85em;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 7px;white-space:nowrap}
+.spec-t{color:var(--spec)}
+.status-t{color:var(--status)}
+.agent-t{color:var(--agent)}
+.bet-t{color:var(--bet)}
+.tag{font-family:var(--mono);font-size:12px;letter-spacing:.05em;padding:2px 9px;border-radius:3px;display:inline-block}
+.tag.spec{background:var(--spec-bg);color:var(--spec)}
+.tag.status{background:var(--status-bg);color:var(--status)}
+.tag.agent{background:var(--agent-bg);color:var(--agent)}
+.tag.bet{background:var(--bet-bg);color:var(--bet)}
+p+p{margin-top:1.1em}
+section{padding:84px 0;border-top:1px solid var(--line)}
+section h2{font-size:34px;font-weight:700;margin:10px 0 28px}
+section h3{font-size:20px;font-weight:500;margin:34px 0 12px}
+section h4{font-size:17px;font-weight:500;margin:26px 0 8px;font-family:var(--mono)}
+.lede{font-size:20px;color:var(--muted)}
+em{font-style:italic}
+strong{font-weight:500;font-family:var(--disp);font-size:.95em}
+ul.plain{margin:14px 0 14px 22px}
+ul.plain li{margin:8px 0;font-size:17px}
+
+header{padding:110px 0 90px;position:relative}
+header .path{margin-bottom:26px;display:block}
+header h1{font-size:clamp(42px,7vw,74px);font-weight:700;letter-spacing:-.02em;max-width:16ch}
+header .sub{font-size:21px;color:var(--muted);max-width:34em;margin-top:26px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:44px;font-family:var(--mono);font-size:13px}
+.legend span{display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.s1{background:var(--spec)}
+.dot.s2{background:var(--status)}
+.dot.s3{background:var(--agent)}
+.dot.s4{background:var(--bet)}
+
+.part{background:var(--ink);color:var(--paper);padding:70px 0;border-top:none}
+.part .path{color:#8B95A0}
+.part h2{font-size:clamp(30px,4.5vw,44px);margin:12px 0 14px;color:var(--paper)}
+.part p{color:#B8C0C9;font-size:19px;max-width:36em}
+
+.pull{font-family:var(--disp);font-size:clamp(24px,3.6vw,34px);font-weight:500;line-height:1.35;border-left:4px solid var(--ink);padding-left:26px;margin:40px 0}
+.pull.bet{border-left-color:var(--bet)}
+
+.noun{border:1px solid var(--line);border-radius:10px;background:#fff;margin:26px 0;overflow:hidden}
+.noun-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 26px 0;flex-wrap:wrap}
+.noun-head h3{margin:0;font-size:24px}
+.noun-head .path{font-size:12px}
+.noun-body{padding:14px 26px 24px}
+.noun-body p{font-size:17px}
+.facets{list-style:none;margin-top:16px;border-top:1px dashed var(--line)}
+.facets li{display:grid;grid-template-columns:190px 1fr;gap:14px;padding:12px 0;border-bottom:1px dashed var(--line);font-size:16px}
+.facets li:last-child{border-bottom:none}
+.facets .fname{font-family:var(--mono);font-size:14px}
+.who{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px;display:block}
+@media(max-width:600px){.facets li{grid-template-columns:1fr}}
+
+.verbs{width:100%;border-collapse:collapse;margin:26px 0;font-size:16px}
+.verbs th{font-family:var(--mono);font-size:13px;letter-spacing:.05em;text-align:left;color:var(--muted);font-weight:500;padding:10px 14px;border-bottom:2px solid var(--ink)}
+.verbs td{padding:14px;border-bottom:1px solid var(--line);vertical-align:top}
+.verbs td:first-child{font-family:var(--mono);font-size:15px;white-space:nowrap}
+
+.loopbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:34px 20px;margin:34px 0}
+.loopbox svg{display:block;width:100%;height:auto}
+
+.sm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0;font-family:var(--mono);font-size:14px}
+.sm .st{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 14px}
+.sm .st.hot{border-color:var(--bet);background:var(--bet-bg);color:var(--bet)}
+.sm .st.ok{border-color:var(--status);background:var(--status-bg);color:var(--status)}
+.sm .st.gate{border-color:var(--spec);background:var(--spec-bg);color:var(--spec)}
+.sm .arr{color:var(--muted)}
+
+.sentence{background:var(--ink);color:var(--paper);border-radius:12px;padding:56px 40px;margin:36px 0;font-family:var(--disp);font-size:clamp(19px,2.6vw,26px);line-height:1.9;font-weight:400}
+.sentence b{font-weight:500;padding:2px 10px;border-radius:6px;white-space:nowrap}
+.sentence .n1{background:#3A3324;color:#EFC46A}
+.sentence .n2{background:#20342A;color:#7CD3A4}
+.sentence .n3{background:#2C2843;color:#B7ACF0}
+.sentence .n4{background:#3B2426;color:#EF9AA0}
+.sentence small{display:block;font-family:var(--mono);font-size:13px;color:#9AA3AC;margin-top:28px;letter-spacing:.05em}
+
+.law{display:grid;grid-template-columns:56px 1fr;gap:20px;padding:22px 0;border-bottom:1px solid var(--line)}
+.law:last-of-type{border-bottom:none}
+.law .n{font-family:var(--mono);font-size:15px;color:var(--muted);padding-top:3px}
+.law h3{margin:0 0 6px;font-size:19px}
+.law p{font-size:16.5px;color:var(--ink)}
+
+.map{width:100%;border-collapse:collapse;font-size:16px;margin:20px 0 8px}
+.map th{font-family:var(--mono);font-size:13px;letter-spacing:.05em;color:var(--muted);text-align:left;font-weight:500;padding:8px 12px;border-bottom:2px solid var(--ink)}
+.map td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.map td:first-child{font-family:var(--mono);font-size:14.5px}
+
+.machine{background:#14181E;color:#C9D2DB;border-radius:12px;padding:8px 0;margin:26px 0;overflow-x:auto}
+.machine pre{font-family:var(--mono);font-size:13.5px;line-height:1.6;padding:22px 26px;white-space:pre}
+.machine .k{color:#EFC46A}
+.machine .c{color:#6B7684}
+
+.tree{background:#fff;border:1px solid var(--line);border-radius:10px;margin:22px 0;overflow-x:auto}
+.tree pre{font-family:var(--mono);font-size:13.5px;line-height:1.75;padding:22px 26px;white-space:pre}
+.tree .d{color:var(--agent);font-weight:500}
+.tree .c{color:var(--muted)}
+.tree .f{color:var(--ink)}
+
+.mile{border:1px solid var(--line);border-left:4px solid var(--agent);border-radius:8px;background:#fff;padding:20px 24px;margin:20px 0}
+.mile h3{margin:0 0 8px;font-size:19px}
+.mile .dod{font-family:var(--mono);font-size:13.5px;color:var(--status);margin-top:12px;display:block}
+.mile p{font-size:16.5px}
+
+.why{background:var(--panel);border-left:3px solid var(--muted);border-radius:0 8px 8px 0;padding:14px 20px;margin:18px 0;font-size:16px}
+.why b{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:4px}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+
+footer{padding:70px 0 90px;border-top:1px solid var(--line)}
+footer p{font-family:var(--mono);font-size:13px;color:var(--muted)}
+
+/* injected: site nav strip */
+.sitenav{border-bottom:1px solid var(--line);background:var(--panel)}
+.sitenav .wide{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-top:10px;padding-bottom:10px;font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;color:var(--muted)}
+.sitenav a{color:var(--ink);text-decoration-thickness:1px;text-underline-offset:3px}
+.sitenav .sep{color:var(--line)}
+.sitenav code{font-family:var(--mono);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+</style>
+</head>
+<body>
+
+<nav class="sitenav" aria-label="site">
+  <div class="wide">
+    <strong style="font-family:var(--disp);font-weight:500;color:var(--ink)">cronfounder</strong>
+    <span class="sep">·</span>
+    <span>install: <code>npx github:henriquemeireles7/cronfounder init</code></span>
+    <span class="sep">·</span>
+    <a href="../index.html">&larr; back to the landing page</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/henriquemeireles7/cronfounder">repo</a>
+  </div>
+</nav>
+
+<header class="wrap">
+  <span class="path">~/company/ONTOLOGY.html · v2 · 2026-07-13</span>
+  <h1>The Company Loop</h1>
+  <p class="sub">A company that runs as code. In three parts: <strong>I.</strong> the story — why growth doesn't compile and what closes the loop. <strong>II.</strong> the system — six nouns, three verbs, five actors, three clocks. <strong>III.</strong> the build — the plan a developer can implement, decision by decision.</p>
+  <div class="legend">
+    <span><span class="dot s1"></span>amber = desired (spec)</span>
+    <span><span class="dot s2"></span>green = observed (status)</span>
+    <span><span class="dot s4"></span>rust = the bet (hypothesis)</span>
+    <span><span class="dot s3"></span>violet = the actors (agents)</span>
+  </div>
+</header>
+
+<!-- ============================================================= -->
+<div class="part" id="part-one"><div class="wrap">
+  <span class="path">/part-one</span>
+  <h2>I · The story</h2>
+  <p>Written for a developer who shipped a product and hit a wall no compiler ever warned them about. No code in this part. Just the problem, and the shape of the answer.</p>
+</div></div>
+
+<section class="wrap reveal" id="00-you-shipped-now-what">
+  <span class="path">/00-you-shipped-now-what</span>
+  <h2>You shipped. Now what?</h2>
+  <p>You know this morning. The product works. The tests pass. The deploy is green. You open the dashboard and the line is flat, and for the first time since you learned to program, you genuinely do not know what to type next.</p>
+  <p>You are not alone in this. AI made software absurdly cheap to create, and the result is that <em>a finished product with zero distribution is now the most common object on the internet.</em> Millions of them. The bottleneck of building a company has moved, completely and permanently, from "can you make the thing" to "can you make the numbers move" — and nobody rewrote the tooling for the new bottleneck.</p>
+  <p>So developers do what the internet tells them. "Do content." "Do cold outreach." "Launch on Product Hunt." And here is the honest engineering objection to all of that advice: <strong>it doesn't compile.</strong> It's not wrong — it's underspecified. It names a category of activity without telling you what to do <em>today</em>, how to know if it's <em>working</em>, or when to <em>stop</em>. Imagine a bug report that just said "improve the code." That's what growth advice sounds like to a machine — or to you at 9 a.m.</p>
+</section>
+
+<section class="wrap reveal" id="01-why-growth-doesnt-compile">
+  <span class="path">/01-why-growth-doesnt-compile</span>
+  <h2>Why growth doesn't compile</h2>
+  <p>Writing code has a property so fundamental you stopped noticing it: a <strong>fast, closed feedback loop</strong>. You change a file, and within seconds reality answers — it compiles or it doesn't, the test is red or green. Every skill you have was built inside that loop. Tight feedback is why you got good.</p>
+  <p>Running a company has the opposite property: a <strong>slow, open loop that passes through the outside world.</strong> You post something, and the answer comes back in days, through platforms you don't control, from humans you can't inspect, buried in noise you can't filter. There is no compiler for marketing. There is no test suite for sales. You are debugging a distributed system where every node is a stranger's attention span.</p>
+  <div class="pull">Developers aren't bad at growth. Growth is bad at feedback. Fix the loop and the same person who shipped the product can grow it.</div>
+  <p>That sentence is the whole thesis. Everything that follows is machinery for making it true: first, a way to make the company's state <em>legible</em> — readable and writable like code. Second, a way to make the uncertainty <em>honest</em> — because the deepest difference between code and growth is that in growth, <strong>nobody knows what will work.</strong> Not you, not the gurus, not the AI. Any system that pretends otherwise is lying to you with extra steps.</p>
+</section>
+
+<section class="wrap reveal" id="02-first-insight-spec-vs-status">
+  <span class="path">/02-first-insight-spec-vs-status</span>
+  <h2>First insight: a business is spec versus status</h2>
+  <p>Borrow the best idea from modern infrastructure. In Kubernetes, you never tell the cluster what to <em>do</em> — you declare what should be <em>true</em> ("three replicas of this service"), the system continuously measures what <em>is</em> true, and a controller works to close the gap. Every resource is a document with two fields:</p>
+  <ul class="plain">
+    <li><span class="tag spec">spec</span>&nbsp; the <strong class="spec-t">desired state</strong>. Written by humans. "MRR should be $10,000 by October." Intent lives here.</li>
+    <li><span class="tag status">status</span>&nbsp; the <strong class="status-t">observed state</strong>. Written only by <em>sensors</em> — dumb scheduled jobs that pull truth from the world. "MRR is $4,210, measured at 07:02." Reality lives here.</li>
+  </ul>
+  <p>Apply the split to a company and something clicks. A metric whose status is below its spec is <strong>a failing test</strong>. Your metric tree — visitors feeding conversion feeding revenue — is <strong>the test suite of the business</strong>. And "growth," that mystical word, collapses into something a machine can hold: <em>reconciliation</em>. Diff desire against reality, emit work to close the gap, repeat.</p>
+  <p>One causal chain makes the work concrete. A company can't reach into the world and move a number directly. It can only place <strong>content</strong> (a post, an email, a page, a reply) into <strong>channels</strong> (the surfaces where humans encounter it), and human <strong>behavior</strong> responds, and behavior casts a shadow, and the shadow is your <strong>numbers</strong>. Content → behavior → numbers. That chain is the physics of the system; every mechanism in Part II exists to make it legible to a machine.</p>
+  <p>And one rule keeps the whole thing honest — the most important sentence in this document: <strong>agents write intentions; sensors write reality.</strong> An agent allowed to record its own outcomes is grading its own homework, and the loop silently dies.</p>
+</section>
+
+<section class="wrap reveal" id="03-second-insight-nobody-knows">
+  <span class="path">/03-second-insight-nobody-knows</span>
+  <h2>Second insight: nobody knows what moves the number</h2>
+  <p>Here is where v1 of this document was too optimistic, and where most "AI marketing" tools are dishonest. Suppose the failing test is <span class="term">github_stars: 40 &lt; 500</span>. What is "the task"?</p>
+  <p>There isn't one. There is a <em>space of competing bets</em>: post build-in-public content on X. Launch on Product Hunt. Email fifty newsletter authors. Rewrite the README's first screen. Post a technical deep-dive on Hacker News. Each has a different cost, a different chance of working, a different theory of <em>why</em> it would work — and most of them are wrong. That is not a flaw in your knowledge. It is the epistemic condition of growth itself.</p>
+  <div class="pull bet">A gap does not imply a task. A gap implies hypotheses. Growth is test-driven development where most patches fail — so the unit of work is the experiment, not the to-do.</div>
+  <p>This changes the loop's grammar. Between the gap and the work sits a new object — the <strong class="bet-t">hypothesis</strong>: a falsifiable claim ("if we do X on channel Y for two weeks, metric M moves by roughly Z, because of this theory about our customer"), with a price tag, a risk label, and — non-negotiable — <strong>kill criteria</strong>. A hypothesis without a falsification condition is a vibe, and vibes are how agents become busy instead of effective.</p>
+  <p>And it changes what "done" means. A hypothesis isn't finished when its work is done. It's finished when the <em>sensor</em> renders a <strong>verdict</strong>: validated or invalidated, recorded forever. Invalidated is not failure — it's the system learning, at a known price, which door doesn't open. The company that runs this loop doesn't just produce output. It <em>accumulates knowledge about its own market</em>, one falsified bet at a time. That accumulated record is a moat no competitor can copy, because it's made of your specific audience's actual behavior.</p>
+</section>
+
+<section class="wrap reveal" id="04-what-this-is">
+  <span class="path">/04-what-this-is</span>
+  <h2>What this is: an operator, not an assistant</h2>
+  <p>You may have run an open-source agent like OpenClaw: it lives in your chat apps, waits for your message, and reacts brilliantly. Its unit of existence is <em>the conversation</em>. It is an assistant — it moves when you move.</p>
+  <p>The Company Loop is the other species: <strong>proactive</strong>. It wakes on a heartbeat whether or not you said anything, measures reality, diffs it against your targets, proposes bets, and — inside boundaries you set — runs them. Its unit of existence is <em>the gap</em>. It is an operator. The honest one-line comparison: <em>an OpenClaw-class agent, but its job is running and growing your company, and its inbox is your metrics instead of your messages.</em></p>
+  <p>What it feels like in the first ten minutes: you point it at what already exists — your website, your Stripe account, your repo. It drafts your doctrine from those artifacts and interviews you only about the gaps. You give it one number and one date ("500 stars by October"). A sensor runs, reality fills in, and the first diff comes back red. Then the moment that makes this different from every dashboard you've ever ignored: it doesn't show you a chart. It hands you <strong>three ranked bets to close the gap, each with a price, a risk label, and a theory</strong> — and asks which one to fund. From then on, it works while you sleep, and your entire job narrows to a small inbox: approve, reject, or ask why.</p>
+</section>
+
+<!-- ============================================================= -->
+<div class="part" id="part-two"><div class="wrap">
+  <span class="path">/part-two</span>
+  <h2>II · The system</h2>
+  <p>The full ontology, upgraded. Six nouns, three verbs, five actors, three clocks, one seam for storage, ten invariants. This is the part a human founder and an autonomous agent must read the same way.</p>
+</div></div>
+
+<section class="wrap reveal" id="05-nouns">
+  <span class="path">/05-nouns</span>
+  <h2>The six nouns</h2>
+  <p class="lede">Everything in the company is one of six resources. Five are inherited from v1; the sixth — Hypothesis — is new, and it reorganizes the runtime around uncertainty.</p>
+
+  <div class="noun">
+    <div class="noun-head"><h3>1 · Doctrine</h3><span class="path">/doctrine · the beliefs</span></div>
+    <div class="noun-body">
+      <p>What the business believes and intends: the customer (ICP), the problem, the offer, the positioning, the voice, the guardrails. Referenced by every other resource, owned by none of them. Without doctrine, every target is arbitrary, every piece of content is generic, and every hypothesis is a coin flip — doctrine is where the strategist's "because" clauses come from.</p>
+      <ul class="facets">
+        <li><span class="fname">identity.md</span><span>ICP, problem, solution, offer, pricing, brand voice.<span class="who">written by: human + agent onboarding · read by: everything</span></span></li>
+        <li><span class="fname">constitution.md</span><span>Guardrails: what never ships without approval, banned actions, tone rules, the auto-activation budget (see /06).<span class="who">written by: human · read by: every actor on every run</span></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="noun">
+    <div class="noun-head"><h3>2 · Metrics</h3><span class="path">/metrics · the objective function</span></div>
+    <div class="noun-body">
+      <p>The numbers, each with the spec/status split, composing into a metric tree: leaves (visitors, reply rate) roll up into the root (revenue, or stars — your North Star). The metric is the only file where desire and reality meet; the tree is the test suite. Two bindings make each metric operable, and both are explicit fields: the <strong>measurement edge</strong> (which sensor writes its status) and the <strong>movement edge</strong> (which hypotheses are allowed to claim it — at most one active at a time, see /09).</p>
+      <ul class="facets">
+        <li><span class="fname">spec</span><span>Target value, deadline.<span class="who">written by: human, or agent as proposal</span></span></li>
+        <li><span class="fname">status</span><span>Current value, timestamp.<span class="who">written by: sensors only — never by hand, never by an agent</span></span></li>
+        <li><span class="fname">sensor</span><span>The measurement edge: which sensor/channel produces this number.<span class="who">written by: human at setup</span></span></li>
+        <li><span class="fname">history</span><span>Append-only series, lives in the ledger (see /10).<span class="who">written by: sensors only</span></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="noun">
+    <div class="noun-head"><h3>3 · Channels</h3><span class="path">/channels · the surfaces of contact</span></div>
+    <div class="noun-body">
+      <p>Every surface where a human encounters the business — landing page, inbox, X account, ad platform, payment processor — forced behind one uniform interface, as Unix forced disks and keyboards behind the file interface. Channels are where behavior happens and where all integration code lives. New in v2: each channel declares an <strong>acceptance matrix</strong> — which payload types it takes (X: text, image, video · email: text · landing page: html). This matrix is what lets the planner match a hypothesis to a channel mechanically.</p>
+      <ul class="facets">
+        <li><span class="fname">setup.md</span><span>Identity, credential references, cadence limits, acceptance matrix, readiness flag. Identity is provisioned by the human — the agent operates accounts, never creates or owns them.<span class="who">written by: human at day zero</span></span></li>
+        <li><span class="fname">driver</span><span>The code implementing the three verbs. In practice: an MCP server.<span class="who">written by: developers · called by: agents and sensors</span></span></li>
+        <li><span class="fname">skills/</span><span>How to write for this surface: format rules, etiquette, what performs.<span class="who">written by: human + community · read by: builders</span></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="noun">
+    <div class="noun-head"><h3>4 · Content</h3><span class="path">/content · the payloads</span></div>
+    <div class="noun-body">
+      <p>Everything a human actually consumes through a channel. Content is doctrine dressed for a surface, shaped by that channel's skills. It is the only lever the system has — every gram of influence passes through this resource. Unchanged from v1 except its provenance now runs one level deeper: every artifact traces to the hypothesis that funded it.</p>
+      <ul class="facets">
+        <li><span class="fname">payload</span><span>The artifact, in the channel's native format (text, image, video, html).<span class="who">written by: builders, from doctrine + skills</span></span></li>
+        <li><span class="fname">state</span><span>draft → pending_approval → approved → published. Nothing side-effectful skips the gate.<span class="who">advanced by: agent up to pending · human across the gate · agent after</span></span></li>
+        <li><span class="fname">provenance</span><span>content → task → project → hypothesis → metric. Every artifact traceable to a bet, every bet to a gap.<span class="who">written by: builders, automatically</span></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="noun" style="border-color:var(--bet)">
+    <div class="noun-head"><h3 class="bet-t">5 · Hypothesis</h3><span class="path">/hypotheses · the bets — new in v2</span></div>
+    <div class="noun-body">
+      <p>A falsifiable, priced claim about how to close a specific metric gap. The hypothesis is where the system is honest about uncertainty: it is the unit of decision (which bet to fund), the unit of learning (validated or invalidated, forever in the journal), and the parent of all work (tasks exist only inside an activated hypothesis). The old free-floating "task queue" is gone; work with no bet behind it is motion without meaning.</p>
+      <ul class="facets">
+        <li><span class="fname">claim</span><span>"If we do X on channel Y for period P, metric M moves ~Z." One sentence, falsifiable.<span class="who">written by: strategist, or human</span></span></li>
+        <li><span class="fname">theory</span><span>The <em>because</em> — the causal story connecting doctrine's ICP to the behavior this bet expects. The section humans always skip; here it is mandatory prose.<span class="who">written by: strategist</span></span></li>
+        <li><span class="fname">experiment</span><span>Design: channels used, duration, the projects it will spawn, and <span class="term">review_at</span> — the date the verdict is due.<span class="who">written by: strategist</span></span></li>
+        <li><span class="fname">economics</span><span>cost (est. tokens + human-minutes) · readiness (channels ready? missing prerequisites listed) · risk (none / reversible / irreversible) · confidence, with its source (journal precedent, doctrine, or guess). See /06.<span class="who">written by: strategist · cost model refined by journal over time</span></span></li>
+        <li><span class="fname">kill_criteria</span><span>The falsification condition: "invalidated if metric moves &lt; Z′ by review_at" plus any early-abort tripwires the watchdog monitors. A hypothesis file without this field is invalid — the schema rejects it.<span class="who">written by: strategist · judged by: sensors</span></span></li>
+        <li><span class="fname">verdict</span><span>validated / invalidated + measured delta, written once, at review_at, from sensor data only.<span class="who">written by: the verdict run, from sensor data — never by the strategist who proposed it</span></span></li>
+      </ul>
+      <p style="margin-top:18px">Its state machine — the <strong>board</strong> is simply these states made visible, exactly as the approval queue is content's <span class="term">pending_approval</span> made visible:</p>
+      <div class="sm">
+        <span class="st">proposed</span><span class="arr">→</span>
+        <span class="st gate">prioritized</span><span class="arr">→ human gate (or green lane) →</span>
+        <span class="st hot">active</span><span class="arr">→</span>
+        <span class="st">measuring</span><span class="arr">→</span>
+        <span class="st ok">validated</span><span class="arr">·</span>
+        <span class="st">invalidated</span>
+      </div>
+      <p><em>Approval is ignition:</em> the moment a human (or the green lane) moves a hypothesis to <span class="term">active</span>, the system immediately compiles it into an implementation plan and spawns its projects — no second command, no waiting. Approval is the trigger.</p>
+    </div>
+  </div>
+
+  <div class="noun">
+    <div class="noun-head"><h3>6 · Journal</h3><span class="path">/journal · the memory</span></div>
+    <div class="noun-body">
+      <p>The append-only record of everything: runs, actions, publications, approvals granted and refused, verdicts — and what the numbers did afterward. Never edited, only appended. The journal is what lets the strategist's confidence scores mean something ("cold email to newsletters: invalidated twice, at known cost"), and it is the audit trail that makes autonomy trustworthy: "why did the agent do X?" always has an answer in here.</p>
+    </div>
+  </div>
+
+  <h3>Runtime objects (not nouns — they don't survive the run)</h3>
+  <p>Three mutable objects animate the nouns. They live in the ledger (see /10), not in git, because they change constantly and need transactions:</p>
+  <ul class="plain">
+    <li><strong>Project</strong> — a hypothesis, compiled. Each activated hypothesis decomposes into one or more projects, and <em>projects are agent-shaped</em>: each project type binds to exactly one builder subagent with its own prompt and tool scope (a content project → the content builder; a channel-setup project → the channel builder). This is the "who does what" answer: hypotheses don't trigger "an agent" — they spawn typed projects, and each type knows its worker.</li>
+    <li><strong>Task</strong> — the atomic work item inside a project. Mutable, claimable, transactional. Every task's provenance chain ends at a metric gap, always.</li>
+    <li><strong>Inbox request</strong> — a first-class ask from the system to the human, with a strict schema: <em>what</em> (one action), <em>why</em> (traceable to the hypothesis and metric it unblocks), <em>exact steps</em> (assume the human has context only from this card), <em>blocking</em> (what stalls until done), <em>kind</em> (approve_hypothesis · approve_content · setup_channel · provide_credential · decide). The freeform "human-tasks.md" pattern fails because agents rush it and humans can't reconstruct the context; a schema makes rushing impossible. The human's whole interface to the system is this inbox plus the board.</li>
+  </ul>
+</section>
+
+<section class="wrap reveal" id="06-hypothesis-economics">
+  <span class="path">/06-hypothesis-economics</span>
+  <h2>Hypothesis economics: how the system decides</h2>
+  <p class="lede">Many bets, one budget. Selection must be mechanical enough to explain and humble enough to stay honest.</p>
+  <p>Every hypothesis carries three economic facets, and they play two different roles — two are <strong>gates</strong>, one is a <strong>score input</strong>. Keeping those roles separate is the design decision that makes prioritization sane:</p>
+  <table class="map">
+    <tr><th>facet</th><th>question it answers</th><th>role</th></tr>
+    <tr><td>cost</td><td>What does running this bet consume? Estimated tokens + estimated human-minutes (approvals, setup). Cheap bets are structurally more interesting: less to lose per unit of learning.</td><td>score input (denominator)</td></tr>
+    <tr><td>readiness</td><td>Are all required channels set up — accounts provisioned, drivers connected, credentials referenced? If not, the missing prerequisites are listed explicitly.</td><td>gate — not ready ⇒ state <span class="term">blocked</span>, and each missing prerequisite becomes an inbox request (kind: setup_channel). A brilliant bet on an unbuilt channel doesn't lose points; it queues the setup and waits.</td></tr>
+    <tr><td>risk</td><td>Blast radius if wrong. <span class="term">none</span> (draft-only, reversible, invisible) · <span class="term">reversible</span> (public but deletable/correctable) · <span class="term">irreversible</span> (mass email, spend, relationship damage).</td><td>gate — sets the minimum approval level. Irreversible never enters the green lane, regardless of cost.</td></tr>
+  </table>
+  <p>The score itself: <strong>leverage = (expected impact × confidence) ÷ cost.</strong> Impact is the claimed metric delta normalized against the gap; confidence must cite its source — journal precedent beats doctrine reasoning beats guess, and the system learns to price its own guesses as verdicts accumulate. The board sorts by leverage; gates decide who may say yes.</p>
+  <h3>The green lane: pre-approved bets</h3>
+  <p>Autonomy is a ramp, not a switch — and in v2 the ramp applies to bets. The constitution defines an <strong>auto-activation policy</strong>: a hypothesis activates without human approval only if <em>all</em> hold — cost below the per-bet token budget you set · risk = none · readiness = ready · and the executing playbook has earned at least <span class="term">scheduled_with_approval</span> through its journal track record. Everything else stops at the gate. The effect: tiny, safe, cheap experiments flow continuously (the system is never idle waiting for you to approve a draft variant), while anything with a blast radius waits for a human. You tune one number — the budget — to tune the whole system's aggressiveness.</p>
+  <div class="why"><b>WHY THIS DESIGN</b>Cost-as-denominator encodes "prefer cheap learning" without a committee. Readiness-as-gate turns missing infrastructure into visible, queued work instead of silent death. Risk-as-gate means no score, however seductive, can buy its way past safety. Three numbers, two doors, one budget knob.</div>
+</section>
+
+<section class="wrap reveal" id="07-verbs-and-capabilities">
+  <span class="path">/07-verbs-and-capabilities</span>
+  <h2>Verbs and capabilities: who can do what, where</h2>
+  <p>Channels still expose exactly three verbs — this uniformity is why one agent can operate wildly different surfaces without knowing what they are:</p>
+  <table class="verbs">
+    <tr><th>verb</th><th>direction</th><th>meaning</th></tr>
+    <tr><td>pull()</td><td>world → files</td><td>Read events and telemetry out of the channel. Feeds sensors, which write metric status and append the journal. How reality enters.</td></tr>
+    <tr><td>push(content)</td><td>files → world</td><td>Publish an approved payload. Always gated by the content state machine. How influence leaves.</td></tr>
+    <tr><td>subscribe(handler)</td><td>world → agent → world</td><td>Run a playbook when the channel produces an inbound event (a customer question → support playbook → reply pushed). Sales and support are subscriptions, not separate primitives.</td></tr>
+  </table>
+  <p>There is still no <span class="term">update</span> and no <span class="term">delete</span> on the world. The system can only listen, speak, and answer.</p>
+  <h3>Capabilities vs acceptance — the two-lookup rule</h3>
+  <p>v2 resolves a question v1 left implicit: where do "universal actions" live? The answer is a clean split between what agents <em>can make</em> and what channels <em>will take</em>:</p>
+  <ul class="plain">
+    <li><strong>Capabilities</strong> belong to agents. The universal set for builders: <span class="term">compose_text</span> · <span class="term">generate_image</span> · <span class="term">generate_video</span> · <span class="term">browse_computer</span> (operate a browser/UI when no API driver exists) · <span class="term">ask_human</span> (file an inbox request — the one capability every agent has, because escalation must never be blocked). Each builder subagent is granted a subset (see /18).</li>
+    <li><strong>Acceptance</strong> belongs to channels. Each channel's setup declares the payload types it takes: X → text, image, video · email → text · landing page → html. This is configuration, not code.</li>
+  </ul>
+  <p>Feasibility is then two lookups, never a judgment call: <em>does the target channel accept this payload type, and does the assigned builder hold the capability to produce it?</em> The strategist consults both matrices while designing experiments — a video-first bet on an email channel is rejected at design time, not discovered at execution time.</p>
+  <p><strong>Who calls whom</strong>, top to bottom: clocks wake <span class="agent-t">actors</span> → the planner reads metrics and emits gap reports → the strategist reads a gap and writes <span class="bet-t">hypotheses</span> → the gate (human or green lane) activates one → activation compiles projects → projects bind builder subagents → builders exercise capabilities to produce content → the content gate releases <span class="term">push()</span> → drivers touch the world → sensors <span class="term">pull()</span> reality back → verdicts close the bet. No actor skips a layer; no layer calls upward.</p>
+</section>
+
+<section class="wrap reveal" id="08-actors">
+  <span class="path">/08-actors</span>
+  <h2>The five actors (plus the human)</h2>
+  <p class="lede">Nouns are inert files. Five system actors animate them — four are the agent wearing different hats, one is dumb cron — and the human holds two roles: the gate, and the hands.</p>
+  <table class="map">
+    <tr><th>actor</th><th>intelligence</th><th>reads</th><th>writes</th><th>job</th></tr>
+    <tr><td>sensors</td><td>none (cron)</td><td>channel.pull()</td><td>metric status · history · journal</td><td>Measurement. Deliberately dumb: no judgment, just numbers. The only writers of reality.</td></tr>
+    <tr><td>watchdog</td><td>low</td><td>channel.pull() on recent pushes</td><td>journal · inbox (alert) · hypothesis tripwires</td><td>Damage detection. Runs on the fast clock after any push; checks kill-criteria tripwires and anomaly signals (spike in negative replies, unsubscribes, platform flags). Can pause a hypothesis and page the human; cannot judge success — only harm.</td></tr>
+    <tr><td>planner</td><td>medium</td><td>doctrine · metrics · board</td><td>gap reports</td><td>Diffing. Ranks the failing tests, notes which have active bets, which are naked, which have verdicts due. Emits questions, not work: "stars 40% behind trajectory, no active hypothesis."</td></tr>
+    <tr><td>strategist</td><td>high</td><td>doctrine · journal · gap report · channel matrices · (research tools)</td><td>hypotheses (proposed)</td><td>Understanding. Takes one naked gap and produces 3–7 scored, falsifiable bets. This is the "knowing what to do" work — separated from execution because it is judged differently: a good strategist run widens the hypothesis space; it produces zero output.</td></tr>
+    <tr><td>builders</td><td>high</td><td>their project · doctrine · channel skills</td><td>content (→ pending) · tasks · journal</td><td>Execution. Project-scoped subagents, each type with its own prompt and tool scope: the content builder writes payloads; the channel builder assembles setup instructions and driver config (and files inbox requests for anything only a human may do — credentials, account creation).</td></tr>
+    <tr><td><strong>human: gate</strong></td><td>—</td><td>inbox · board</td><td>approvals · verdict overrides</td><td>Capital allocation. Funds bets, releases pushes, promotes playbooks up the autonomy ramp.</td></tr>
+    <tr><td><strong>human: hands</strong></td><td>—</td><td>inbox</td><td>the world</td><td>Identity and capital. Creates accounts, holds credentials, spends money — the actions invariant IV reserves for humans, requested via schema'd inbox cards, never via freeform notes.</td></tr>
+  </table>
+  <div class="why"><b>WHY SPLIT PLANNER FROM STRATEGIST</b>v1's planner secretly did three jobs: measure the gap, decide what to do about it, and queue the work. But "what to do" is the highest-uncertainty, highest-value cognition in the whole system — understanding is worth more than doing. Naming it as its own actor means it gets its own harness (research tools, longer thinking), its own cadence (slow — see /09), and its own quality bar (breadth and honesty of the bet space, not volume of output).</div>
+</section>
+
+<section class="wrap reveal" id="09-clocks">
+  <span class="path">/09-clocks</span>
+  <h2>The three clocks</h2>
+  <p class="lede">v1 had one heartbeat. Real experiments need three timescales — because damage is fast, work is daily, and truth is slow.</p>
+  <table class="map">
+    <tr><th>clock</th><th>cadence</th><th>wakes</th><th>question</th></tr>
+    <tr><td>reflex</td><td>minutes → 1 hour, during a monitoring window after any push()</td><td>watchdog</td><td>"Did we just cause harm?" Checks tripwires from the active hypothesis's kill criteria plus generic anomaly signals. Fires only when something is live; silent otherwise. This is the answer to "what if the agent pushes something really bad" — you find out in minutes, not at the weekly review.</td></tr>
+    <tr><td>pulse</td><td>daily</td><td>sensors, then planner (and green-lane activation)</td><td>"What is true, and which tests are failing?" Reality first, diff second — the ordering is deliberate; a plan computed on stale status is a plan about a fictional company.</td></tr>
+    <tr><td>season</td><td>per-hypothesis, at review_at (typically 7–15 days)</td><td>verdict run; then strategist if the metric is left naked</td><td>"Did the bet work?" The verdict compares sensor history against the claim and writes validated/invalidated to the journal.</td></tr>
+  </table>
+  <h3>Attribution discipline</h3>
+  <p>The season clock enforces the rule that makes verdicts meaningful: <strong>one active hypothesis per metric</strong> (a hard WIP limit — attribution before ambition). Run five simultaneous bets on the same number and the sensor cannot tell you which one moved it; you've spent the effort and learned nothing. It also spaces the strategist: no new bets on a metric while one is <span class="term">measuring</span>. The system's patience is not laziness — it's the cost of clean data. Different metrics may run bets in parallel; the limit is per-metric, not global.</p>
+</section>
+
+<section class="wrap reveal" id="10-storage">
+  <span class="path">/10-storage</span>
+  <h2>Storage: files are canon, the ledger is truth-in-motion</h2>
+  <p>A pure filesystem breaks in three specific places: atomic state transitions (two builders claim the same task; a status write lands mid-read), queries ("every invalidated acquisition bet in 90 days" over markdown is archaeology), and time-series math. A pure database breaks the more important things: agent legibility (a model reads a playbook natively, not row 47), git's free diff-review and immutable history, and the fork-ability that makes this open-source-shaped. So the architecture takes a seam, and the seam has one principle:</p>
+  <div class="pull">Prose in files, ledgers in tables — and the database must always be rebuildable from the repo. If the .db file vanished, you lose convenience, never meaning.</div>
+  <ul class="plain">
+    <li><strong>Files (git, canon):</strong> everything a model reasons over or a human should diff — doctrine, playbooks, channel setups and skills, hypothesis documents (claim/theory/experiment prose), content payloads, daily journal entries in prose.</li>
+    <li><strong>SQLite (the ledger, one file inside the repo directory, gitignored):</strong> everything that mutates transactionally or gets queried — task and project state, hypothesis state transitions, metric history, the inbox, a journal index. SQLite because it is the boring, embedded, zero-server database that has earned the right to be a default.</li>
+    <li><strong>DuckDB (later, the analyst):</strong> not a competitor to SQLite — an analytical engine pointed <em>at</em> the history when the questions get interesting ("which hook style correlates with star spikes"). Not in the MVP.</li>
+  </ul>
+  <p>This seam is invariant V matured: anything a UI must render or a transaction must protect has a frozen schema in the ledger; anything only the model reads stays as freeform prose in git. Determinism where the system needs guarantees; language where it needs meaning.</p>
+</section>
+
+<section class="wrap reveal" id="11-onboarding">
+  <span class="path">/11-onboarding</span>
+  <h2>Onboarding: read first, ask second</h2>
+  <p>Onboarding is a command, and it is the first execution of the loop, compressed. Its design rule exists because of a predictable failure: a user trying a new tool will answer an open-ended interview lazily, get a lazy doctrine back, and conclude the tool doesn't work. So the interview never opens with a blank question. It opens by <strong>reading what already exists</strong>: the user provides a website URL, a pitch deck, a repo, a Stripe account — artifacts where they have already done the thinking — and the agent drafts <span class="term">identity.md</span> from them, then interviews only about the <em>gaps and contradictions</em> it found ("your site says teams, your pricing says solo — which is the ICP?"). Ten minutes of correcting a good draft beats an hour of producing a bad one, and correcting is something even a skeptical user will do.</p>
+  <p>The rest of the command wires the minimum loop: one credential pasted → first sensor configured · one number and one date → first metric spec · sensor runs once → status fills with reality · planner diffs → first gap · strategist runs → <strong>three ranked bets land on the board, and the first inbox card asks you to fund one.</strong> That card is the product's magic moment. Then it installs the clocks and tells you where approvals will arrive. From that point the user's interface is the inbox and the board; everything else happens while they're not looking.</p>
+</section>
+
+<section class="wrap reveal" id="12-invariants">
+  <span class="path">/12-invariants</span>
+  <h2>The ten invariants</h2>
+  <p class="lede">Rules that keep the loop honest. Break one and the system degrades in a specific, predictable way — noted with each law.</p>
+  <div class="law"><div class="n">I</div><div><h3>Agents write intentions; sensors write reality.</h3><p>Only sensors write <span class="term">status</span> and history. Agents propose specs, write hypotheses, produce content — never record outcomes. Broken: the agent grades its own homework and the loop optimizes reports instead of results.</p></div></div>
+  <div class="law"><div class="n">II</div><div><h3>The journal is append-only.</h3><p>History is never edited; corrections are new entries. Broken: memory becomes unreliable and the audit trail — the basis of trust — is worthless.</p></div></div>
+  <div class="law"><div class="n">III</div><div><h3>Nothing side-effectful skips the gate.</h3><p>Every push() passes the content state machine; autonomy is granted per-playbook, as a ramp, earned in the journal. Broken: one bad run destroys relationships that took years to build.</p></div></div>
+  <div class="law"><div class="n">IV</div><div><h3>Humans own identity and capital; agents own operations.</h3><p>Accounts, credentials, money: provisioned by the human, operated by the agent, requested only through schema'd inbox cards. Broken: the system crosses from tool into liability.</p></div></div>
+  <div class="law"><div class="n">V</div><div><h3>Files are canon; the ledger is derived or transactional, never the sole home of meaning.</h3><p>Prose in git, state in SQLite, rebuildable from the repo. Broken: either agents go illiterate (meaning trapped in rows) or the runtime goes flaky (transactions attempted over markdown).</p></div></div>
+  <div class="law"><div class="n">VI</div><div><h3>Every task traces to a bet; every bet traces to a gap.</h3><p>Provenance runs content → task → project → hypothesis → metric, no orphans. Broken: the agent becomes busy instead of effective — motion without reconciliation.</p></div></div>
+  <div class="law"><div class="n">VII</div><div><h3>No hypothesis without kill criteria.</h3><p>The schema rejects a bet that cannot lose. Broken: experiments become vibes, "measuring" never ends, and the journal stops accumulating knowledge.</p></div></div>
+  <div class="law"><div class="n">VIII</div><div><h3>One active hypothesis per metric.</h3><p>Attribution before ambition. Broken: the sensor can't assign credit, and the system pays full price for zero learning.</p></div></div>
+  <div class="law"><div class="n">IX</div><div><h3>Verdicts come from sensors, on schedule.</h3><p>Validated/invalidated is computed from measured history at review_at — never declared early, never by the strategist who proposed the bet. Broken: conviction substitutes for evidence, which is the disease this system exists to cure.</p></div></div>
+  <div class="law"><div class="n">X</div><div><h3>Risk gates cannot be bought.</h3><p>The green lane admits only cost-under-budget, risk-none, ready bets from playbooks with earned trust. No leverage score overrides a gate. Broken: the cheapest path to a big number eventually runs through something irreversible.</p></div></div>
+</section>
+
+<section class="wrap reveal" id="13-typed-sentence">
+  <span class="path">/13-typed-sentence</span>
+  <h2>The whole system in one sentence</h2>
+  <p>If every other page is lost, keep this:</p>
+  <div class="sentence">
+    <b class="n2">Sensors</b> measure <b class="n2">reality</b> into metric <b class="n2">status</b>; the <b class="n3">planner</b> diffs it against <b class="n1">spec</b> and names the gaps; the <b class="n3">strategist</b> answers each gap with priced, falsifiable <b class="n4">hypotheses</b>; the <b class="n1">gate</b> funds one; the funded bet compiles into <b class="n3">projects</b> whose <b class="n3">builders</b> produce <b class="n1">content</b> through approved <b class="n1">pushes</b>; and at <b class="n4">review_at</b> the sensors — never the believers — render the <b class="n4">verdict</b>, which the <b class="n2">journal</b> keeps forever.
+    <small>gap → bets → one funded → work → world → measurement → verdict → better bets. forever.</small>
+  </div>
+</section>
+
+<!-- ============================================================= -->
+<div class="part" id="part-three"><div class="wrap">
+  <span class="path">/part-three</span>
+  <h2>III · The build</h2>
+  <p>The implementation plan. No code — every component, file, table, command, and harness described with its purpose and the reason it exists, in the order a developer should build it. Read /14 for the shape, then build milestone by milestone.</p>
+</div></div>
+
+<section class="wrap reveal" id="14-shape-of-the-software">
+  <span class="path">/14-shape-of-the-software</span>
+  <h2>The shape of the software</h2>
+  <p class="lede">What we are, in one line: <strong>a CLI + a repo template + an embedded ledger, with an agentic coding CLI as the runtime and MCP as the driver layer.</strong> Not an app, not a framework, not a platform-yet.</p>
+  <p>Four decisions define the architecture. Each was almost decided the other way, so the rationale matters:</p>
+  <div class="why"><b>DECISION 1 — THE RUNTIME IS BORROWED, NOT BUILT</b>The planner, strategist, and builders are invocations of an agentic CLI (Claude Code today; the seam should keep this swappable) running inside the company repo, each wearing a different "hat" — a role prompt plus a tool allowlist. We write zero agent-loop code, zero model plumbing. Our software is the <em>choreography</em>: what gets invoked, when, with what context, allowed to touch what. This is the single biggest scope-saver in the plan, and it's also the honest positioning: the value is the ontology and the discipline, not a bespoke inference stack.</div>
+  <div class="why"><b>DECISION 2 — DRIVERS ARE MCP SERVERS</b>Channels integrate through MCP, an existing protocol with an existing ecosystem of hundreds of servers. Building a proprietary driver interface would mean rebuilding that ecosystem alone. The channel's <span class="term">setup.md</span> maps the ontology's three verbs onto the MCP server's actual tools ("push for X = the create_post tool"), so the ontology stays uniform even when servers aren't.</div>
+  <div class="why"><b>DECISION 3 — THE SEAM: GIT FOR MEANING, SQLITE FOR MOTION</b>As specified in /10. Practically: the CLI owns all ledger writes through a small deterministic core (state transitions, provenance checks, schema validation) — <em>agents never execute SQL.</em> Agents read and write files; the deterministic core notices, validates, and records. This is how a "100% AI workflow" gets its deterministic skeleton: the model does the thinking, the CLI does the bookkeeping, and invalid transitions are impossible rather than discouraged.</div>
+  <div class="why"><b>DECISION 4 — DISTRIBUTION IS A TERMINAL COMMAND</b>Like the reactive agents that proved the pattern: one command scaffolds, onboards, and starts the loop. No app to install, no account to create with us, nothing hosted. The human-facing surfaces in the MVP are the terminal (commands), rendered files (board and inbox as generated markdown/HTML), and optionally a messaging channel for approvals — because the approval gate is itself just a channel, the system can deliver inbox cards over Telegram using its own machinery.</div>
+  <h3>The storyline of one full loop (trace this to test any design change)</h3>
+  <p>07:00, pulse clock → <span class="term">sense</span> runs every sensor; ledger gets fresh status and history; journal appended. 08:00 → <span class="term">plan</span> diffs the tree, finds <span class="term">github_stars</span> naked and 40% behind; writes a gap report. Strategist wakes on the naked gap → researches, writes four hypothesis files, registers them <span class="term">proposed</span>, scores leverage; one is cost 40k tokens / risk none / ready → green lane activates it instantly; the best big one lands in your inbox as an approve_hypothesis card. You tap approve at breakfast → activation compiles the plan: one content project (5 posts, content builder) + one channel-setup project (missing: X credential → inbox card, kind provide_credential). Content builder runs → five drafts, state pending_approval → five approve_content cards. You approve three → push() fires through the X driver → reflex clock opens a 60-minute watchdog window → no tripwires → all quiet. Fifteen days of pulses accumulate history → season clock hits review_at → verdict run compares delta against the claim: +34 stars vs claimed +40, within tolerance → <span class="term">validated</span>, journal appended, the playbook's track record improves, and the strategist's next confidence scores cite it. That is the product.</p>
+</section>
+
+<section class="wrap reveal" id="15-repo-layout">
+  <span class="path">/15-repo-layout</span>
+  <h2>The repository, file by file</h2>
+  <p>What <span class="term">init</span> scaffolds. Every entry: what it is, who writes it, and why it exists. Fields listed here are the schema — Part III's contract with the developer.</p>
+  <div class="tree"><pre><span class="d">company/</span>
+├── <span class="f">AGENT.md</span>                 <span class="c">the runtime's job description (see below)</span>
+├── <span class="f">company.db</span>               <span class="c">the SQLite ledger · gitignored · rebuildable (/16)</span>
+├── <span class="d">doctrine/</span>
+│   ├── <span class="f">identity.md</span>          <span class="c">ICP, problem, offer, positioning, voice</span>
+│   └── <span class="f">constitution.md</span>      <span class="c">guardrails + auto-activation budget + cadence limits</span>
+├── <span class="d">metrics/</span>
+│   └── <span class="f">&lt;metric&gt;.md</span>          <span class="c">frontmatter: name · parent · unit · sensor ·</span>
+│                            <span class="c">spec{target, deadline, set_by, set_at} ·</span>
+│                            <span class="c">status{value, measured_at, written_by} — sensor-only ·</span>
+│                            <span class="c">body: prose on what the number means and its causal chain</span>
+├── <span class="d">channels/&lt;channel&gt;/</span>
+│   ├── <span class="f">setup.md</span>             <span class="c">identity owner · credential *reference* (never the secret) ·</span>
+│   │                        <span class="c">acceptance matrix · cadence limits · readiness flag ·</span>
+│   │                        <span class="c">verb→MCP-tool mapping</span>
+│   └── <span class="d">skills/</span>              <span class="c">how to write for this surface; read by builders</span>
+├── <span class="d">playbooks/</span>
+│   └── <span class="f">&lt;playbook&gt;.md</span>        <span class="c">reusable procedure: theory of the number · steps ·</span>
+│                            <span class="c">autonomy level (earned) · channels used</span>
+├── <span class="d">hypotheses/</span>
+│   └── <span class="f">H-YYYYMMDD-slug.md</span>   <span class="c">frontmatter: id · metric · state · claim · economics</span>
+│                            <span class="c">{cost_tokens, cost_human_min, readiness, missing[],</span>
+│                            <span class="c">risk, confidence, confidence_source} · kill_criteria ·</span>
+│                            <span class="c">review_at · verdict{result, delta, decided_at} ·</span>
+│                            <span class="c">body: theory prose + experiment design + project list</span>
+├── <span class="d">content/</span>
+│   └── <span class="f">C-…/payload.*</span>        <span class="c">+ meta frontmatter: state · channel · provenance chain</span>
+├── <span class="d">journal/</span>
+│   └── <span class="f">YYYY-MM-DD.md</span>        <span class="c">append-only prose entries; indexed into the ledger</span>
+└── <span class="d">inbox/</span>
+    └── <span class="f">R-….md</span>               <span class="c">rendered human-request cards (canonical state in ledger):</span>
+                             <span class="c">kind · what · why(→hypothesis→metric) · steps · blocking</span></pre></div>
+  <p><strong>AGENT.md deserves its own paragraph</strong>, because it is the single file that turns a generic agentic CLI into this system's runtime. It contains: the six nouns and where they live; the invariants verbatim (they are the model's hard constraints); the definition of each hat (planner / strategist / builder / verdict) with what that hat may read and write; and the escalation rule — anything outside this vocabulary becomes an inbox request, never an improvisation. When the runtime is invoked, the hat is selected by the invoking command's prompt; AGENT.md is the constitution all hats share. Notice what's absent from the whole tree: a <span class="term">/queue</span>. Free-floating tasks were removed from the ontology deliberately — task state lives in the ledger, scoped inside projects, inside hypotheses. If work exists, a bet funds it.</p>
+</section>
+
+<section class="wrap reveal" id="16-ledger">
+  <span class="path">/16-ledger</span>
+  <h2>The ledger, table by table</h2>
+  <p>One SQLite file. Written only by the CLI's deterministic core — agents request transitions; the core validates against the state machines and either records or refuses. Every table answers a specific failure of the pure filesystem:</p>
+  <table class="map">
+    <tr><th>table</th><th>holds</th><th>exists because</th></tr>
+    <tr><td>metric_history</td><td>metric_id · value · measured_at · sensor_id</td><td>Trend math and verdict deltas over an append-only series; jsonl-in-git makes every sensor run a commit and every query a parser.</td></tr>
+    <tr><td>hypotheses</td><td>id · metric_id · state · economics fields · review_at · verdict fields · file_path</td><td>The board is a query (state ≠ terminal, sort by leverage). State transitions must be atomic and legal — the core enforces the machine from /05, including "reject if kill_criteria empty" (invariant VII) and "reject activation if metric already has an active bet" (invariant VIII).</td></tr>
+    <tr><td>projects</td><td>id · hypothesis_id · type · builder · state</td><td>Activation compiles bets into typed, agent-shaped work; type→builder binding lives here so "who does this" is data, not judgment.</td></tr>
+    <tr><td>tasks</td><td>id · project_id · state · claimed_by · claimed_at</td><td>Two builders must never grab the same task — claiming is a transaction, the exact thing files cannot do.</td></tr>
+    <tr><td>content_states</td><td>content_id · state · actor · at (transition log)</td><td>The approval gate must be auditable and race-free; the file's frontmatter mirrors the current state for legibility, the ledger is authoritative.</td></tr>
+    <tr><td>inbox</td><td>id · kind · payload · state(open/done/dismissed) · blocking_id</td><td>The human interface needs a queryable queue with guaranteed schema; markdown cards are rendered <em>from</em> this table, so a rushed freeform ask is structurally impossible.</td></tr>
+    <tr><td>journal_index</td><td>at · actor · action · refs(metric/hypothesis/content ids) · file:line</td><td>Prose stays in git for humans and models; the index makes "everything that touched H-…-x-launch" a query instead of a grep-and-pray.</td></tr>
+    <tr><td>watch_windows</td><td>push_id · channel · opened_at · closes_at · tripwires</td><td>The reflex clock needs to know what to watch and when to stand down.</td></tr>
+  </table>
+  <p>Rebuild guarantee (invariant V, tested in CI): a <span class="term">rebuild</span> command reconstructs every table from the repo's files and journal alone. Ledger corruption costs minutes, never meaning.</p>
+</section>
+
+<section class="wrap reveal" id="17-commands">
+  <span class="path">/17-commands</span>
+  <h2>The command surface</h2>
+  <p>Everything the software does is one of these commands — humans run them by hand, clocks run them by cron. Each row: what it does, and what it may touch. This table <em>is</em> the CLI spec.</p>
+  <table class="map">
+    <tr><th>command</th><th>trigger</th><th>does</th></tr>
+    <tr><td>init</td><td>human, once</td><td>Scaffolds the repo (/15). Runs onboarding per /11: ingests provided artifacts (URL, deck, repo), invokes the runtime to draft doctrine, interviews only gaps, wires first sensor + first metric spec, runs sense once, runs plan + strategist once — ends with the board showing ranked bets and the first inbox card. Installs the pulse cron; prints where approvals arrive.</td></tr>
+    <tr><td>sense</td><td>pulse cron · manual</td><td>Runs every configured sensor: driver pull() → validate → write status + metric_history + journal. No model calls. The only reality-writer.</td></tr>
+    <tr><td>plan</td><td>pulse cron, after sense</td><td>Invokes runtime as planner: diff tree, produce gap report (naked gaps, verdicts due, blocked bets). Triggers strategize for naked gaps; runs green-lane check on prioritized bets.</td></tr>
+    <tr><td>strategize &lt;metric&gt;</td><td>plan · manual</td><td>Invokes runtime as strategist with the research harness: writes 3–7 hypothesis files, registers them (schema validated — no kill criteria, no registration), scores leverage, files inbox cards for gate-requiring bets and setup_channel cards for blocked ones.</td></tr>
+    <tr><td>approve &lt;request-id&gt;</td><td>human (terminal, or reply via messaging channel)</td><td>Resolves an inbox card. For approve_hypothesis: transitions to active <em>and immediately compiles</em> — plan-of-record written into the hypothesis file, projects + tasks created, builders invoked. Approval is ignition (per /05).</td></tr>
+    <tr><td>build</td><td>activation · task queue non-empty</td><td>Invokes the bound builder per project: claims tasks transactionally, produces content to pending_approval, files approve_content cards, appends journal.</td></tr>
+    <tr><td>push</td><td>content approved</td><td>Executes driver push() for approved content, records the publication, opens a watch_window with the hypothesis's tripwires.</td></tr>
+    <tr><td>watch</td><td>reflex cron while windows open</td><td>Watchdog: pulls fresh signals on watched pushes, evaluates tripwires; on trip → pause hypothesis, page human (urgent inbox card), journal. Judges harm only, never success.</td></tr>
+    <tr><td>verdict</td><td>season cron at review_at</td><td>Computes delta from metric_history vs the claim; writes validated/invalidated + delta to hypothesis and journal; updates playbook track record; if the metric is still red and naked, triggers strategize.</td></tr>
+    <tr><td>board · inbox</td><td>human</td><td>Render the hypothesis board and the request queue (terminal + generated HTML). Read-only views over the ledger — the human's two windows into the system.</td></tr>
+    <tr><td>rebuild</td><td>manual · CI</td><td>Reconstruct company.db from repo files + journal. The invariant-V guarantee, executable.</td></tr>
+  </table>
+</section>
+
+<section class="wrap reveal" id="18-harnesses">
+  <span class="path">/18-harnesses</span>
+  <h2>Agent harnesses: prompt scope × tool scope</h2>
+  <p>Each hat is a role prompt (layered on AGENT.md) plus a tool allowlist enforced by the invoking command — the runtime never chooses its own permissions. Least privilege is what makes invariant I mechanical rather than aspirational: the strategist <em>cannot</em> write status because it is never handed a tool that can.</p>
+  <table class="map">
+    <tr><th>hat</th><th>may read</th><th>may write</th><th>tools granted</th><th>must never</th></tr>
+    <tr><td>planner</td><td>doctrine · metrics · board state</td><td>gap report</td><td>file read · ledger read</td><td>create work, judge bets, call drivers</td></tr>
+    <tr><td>strategist</td><td>doctrine · journal · gap report · channel matrices</td><td>hypothesis files · registration requests</td><td>file read/write · ledger read · web research · browse (read-only)</td><td>activate anything · write status · touch drivers</td></tr>
+    <tr><td>content builder</td><td>its project · doctrine · channel skills · journal (relevant)</td><td>content drafts → pending · task transitions · journal</td><td>compose_text · generate_image · generate_video (if channel accepts) · ask_human</td><td>push · approve · exceed its project</td></tr>
+    <tr><td>channel builder</td><td>its project · channel setup · MCP registry docs</td><td>setup drafts · driver config · inbox requests · journal</td><td>file read/write · browse · ask_human</td><td>create accounts · handle raw credentials (references only) · push</td></tr>
+    <tr><td>verdict</td><td>hypothesis · metric_history</td><td>verdict fields · journal</td><td>ledger read · file write (verdict block only)</td><td>reinterpret kill criteria · extend review_at · consult the strategist's opinion</td></tr>
+    <tr><td>watchdog</td><td>watch_windows · fresh pull() signals</td><td>tripwire events · urgent inbox cards · pause transitions · journal</td><td>driver pull · ledger write (windows/pauses only)</td><td>push · judge success · resume a paused bet (human-only)</td></tr>
+  </table>
+  <p>The strategist's <strong>research harness</strong> is deliberately the richest and the most world-blind on the write side: broad reading (journal, web, channel docs), long thinking, zero side effects. The most intelligent actor in the system cannot touch the world at all — it can only propose. That asymmetry is the safety architecture in one line.</p>
+</section>
+
+<section class="wrap reveal" id="19-milestones">
+  <span class="path">/19-milestones</span>
+  <h2>Milestones: build order with definitions of done</h2>
+  <p>Ordered so every milestone ships a usable system and makes one invariant real. Do not reorder — each consumes the previous one's guarantees.</p>
+  <div class="mile"><h3>M0 · Skeleton</h3><p>Scaffold command produces the /15 tree with schema-validated templates; ledger created with /16 tables; rebuild works on the empty repo. No model calls yet.</p><span class="dod">done when: init → valid repo · rebuild → identical db · invalid metric/hypothesis files rejected with a reason</span></div>
+  <div class="mile"><h3>M1 · Reality (sense)</h3><p>Two sensors end-to-end — GitHub stars (public API) and Stripe MRR (one credential) — writing status, history, journal. Invariant I becomes mechanical: nothing else holds a status-writing code path.</p><span class="dod">done when: cron'd sense fills status + history unattended for 3 days · hand-edited status is detectably overwritten next run</span></div>
+  <div class="mile"><h3>M2 · The diff (plan)</h3><p>Planner hat wired to the runtime: reads tree, emits gap report distinguishing naked / active / verdict-due / blocked. First model invocation; read-only tools.</p><span class="dod">done when: a red metric yields a correct, human-readable gap report citing real numbers and trajectory</span></div>
+  <div class="mile"><h3>M3 · The bets (strategize + board + inbox)</h3><p>Strategist harness, hypothesis schema enforcement (VII), registration, leverage scoring, board and inbox rendering, setup_channel cards for blocked bets. The product's magic moment exists at the end of this milestone.</p><span class="dod">done when: one naked gap → 3+ registered bets with theory, economics, kill criteria · board sorts by leverage · a bet missing kill criteria cannot be registered</span></div>
+  <div class="mile"><h3>M4 · Ignition (approve → build → push)</h3><p>Approval compiles plan→projects→tasks; content builder produces drafts; content gate; push through one real MCP driver (X). Invariants III, IV, VI, VIII enforced by the core.</p><span class="dod">done when: approve → drafts appear with full provenance · unapproved content cannot push (test proves it) · second bet on a busy metric is refused</span></div>
+  <div class="mile"><h3>M5 · Truth (verdict + season clock)</h3><p>review_at scheduling; verdict computation from history; playbook track records; auto-restrategize on red-and-naked. Invariant IX enforced: verdicts only from sensor data, only on schedule.</p><span class="dod">done when: a bet completes its full life to validated/invalidated untouched · the next strategist run cites the verdict in a confidence score</span></div>
+  <div class="mile"><h3>M6 · Reflexes (watchdog + green lane)</h3><p>Watch windows on push, tripwire evaluation, pause + urgent page; then — only now, once safety exists — the auto-activation policy from the constitution. Invariant X last, deliberately: autonomy is the reward for a proven gate, not a launch feature.</p><span class="dod">done when: a simulated tripwire pauses the bet and pages within one reflex tick · a qualifying cheap/safe/ready bet activates untouched and journals its own justification</span></div>
+  <p><strong>Explicitly not in the MVP:</strong> a web cockpit (board/inbox render as terminal + static HTML; the gate can ride an existing messaging channel), multi-tenant hosting, DuckDB analytics, community playbook registry, more than three drivers, and any autonomy level above the green lane. Each is a v2 candidate that would dilute the only thing the MVP must prove: <em>the loop closes, and it learns.</em></p>
+</section>
+
+<section class="wrap reveal" id="20-machine-appendix">
+  <span class="path">/20-machine-appendix</span>
+  <h2>Machine appendix v2</h2>
+  <p>The ontology as data, for any agent bootstrapping from this document alone. Human sections are authoritative for meaning; this block for structure.</p>
+  <div class="machine"><pre>{
+  <span class="k">"ontology"</span>: "company-loop", <span class="k">"version"</span>: "2.0",
+  <span class="c">// physics: content -> behavior_in_channels -> metrics</span>
+  <span class="c">// epistemics: gap -> hypotheses -> one_funded -> verdict -> better bets</span>
+
+  <span class="k">"resources"</span>: {
+    <span class="k">"doctrine"</span>:   { "facets": ["identity","constitution"],
+                    "writers": ["human","agent:proposal"], "readers": ["*"] },
+    <span class="k">"metric"</span>:     { "fields": { "spec":   { "writers": ["human","agent:proposal"] },
+                                "status": { "writers": ["sensor"] },
+                                "sensor": { "writers": ["human"] },
+                                "history":{ "writers": ["sensor"], "append_only": true } },
+                    "composes_into": "metric_tree",
+                    "wip_limit_active_hypotheses": 1 },
+    <span class="k">"channel"</span>:    { "facets": ["setup","driver","skills"],
+                    "interface": ["pull","push","subscribe"],
+                    "acceptance_matrix": ["text","image","video","html"],
+                    "identity_owner": "human" },
+    <span class="k">"content"</span>:    { "facets": ["payload","state","provenance"],
+                    "state_machine": ["draft","pending_approval","approved","published"],
+                    "gate": "human_between_pending_and_approved",
+                    "provenance": "content->task->project->hypothesis->metric" },
+    <span class="k">"hypothesis"</span>: { "facets": ["claim","theory","experiment","economics",
+                               "kill_criteria","verdict"],
+                    "economics": { "cost": ["tokens","human_minutes"],
+                                   "readiness": { "gate": true, "lists": "missing[]" },
+                                   "risk": { "gate": true,
+                                             "levels": ["none","reversible","irreversible"] },
+                                   "confidence": { "source_required": true } },
+                    "score": "leverage = impact * confidence / cost",
+                    "state_machine": ["proposed","prioritized","blocked","active",
+                                      "measuring","validated","invalidated","paused"],
+                    "activation": "human_gate | green_lane",
+                    "green_lane": ["cost<=budget","risk==none","ready",
+                                   "playbook_trust>=scheduled_with_approval"],
+                    "on_activate": "compile -> projects -> tasks -> builders",
+                    "kill_criteria_required": true,
+                    "verdict_writer": "sensor_data_at_review_at" },
+    <span class="k">"journal"</span>:    { "append_only": true,
+                    "writers": ["sensor","watchdog","builder","gate","verdict"] }
+  },
+
+  <span class="k">"runtime_objects"</span>: {
+    <span class="k">"project"</span>: { "parent": "hypothesis", "typed": true, "binds": "one_builder" },
+    <span class="k">"task"</span>:    { "parent": "project", "claiming": "transactional",
+                 "must_trace_to": "metric_gap" },
+    <span class="k">"inbox_request"</span>: { "kinds": ["approve_hypothesis","approve_content",
+                        "setup_channel","provide_credential","decide"],
+                 "schema": ["what","why->hypothesis->metric","steps","blocking"] }
+  },
+
+  <span class="k">"actors"</span>: {
+    <span class="k">"sensor"</span>:     { "clock": "pulse", "intelligence": false,
+                    "writes": ["metric.status","metric.history","journal"] },
+    <span class="k">"watchdog"</span>:   { "clock": "reflex", "scope": "open_watch_windows",
+                    "may": ["pause_hypothesis","page_human"],
+                    "judges": "harm_only" },
+    <span class="k">"planner"</span>:    { "clock": "pulse", "logic": "diff(spec,status) -> gap_report" },
+    <span class="k">"strategist"</span>: { "trigger": "naked_gap", "harness": "research",
+                    "writes": ["hypothesis:proposed"], "side_effects": "none" },
+    <span class="k">"builder"</span>:    { "trigger": "project", "scoped_to": "project",
+                    "capabilities": ["compose_text","generate_image",
+                                     "generate_video","browse_computer","ask_human"],
+                    "feasibility": "channel.acceptance AND builder.capability" },
+    <span class="k">"verdict"</span>:    { "clock": "season", "at": "review_at",
+                    "inputs": ["metric_history","claim","kill_criteria"] },
+    <span class="k">"gate"</span>:       { "actor": "human", "interface": ["inbox","board"],
+                    "autonomy_ramp": ["manual","draft_only",
+                                      "scheduled_with_approval","auto"] }
+  },
+
+  <span class="k">"clocks"</span>: { "reflex": "minutes_during_watch_windows",
+              "pulse": "daily: sense then plan",
+              "season": "per_hypothesis_review_at" },
+
+  <span class="k">"storage"</span>: { "canon": "files_in_git",
+               "ledger": "sqlite_in_repo",
+               "rule": "ledger_rebuildable_from_repo",
+               "sql_writer": "cli_core_only_never_agents" },
+
+  <span class="k">"invariants"</span>: [
+    "agents write intentions; sensors write reality",
+    "journal is append-only",
+    "no side effect skips the gate",
+    "humans own identity and capital; agents own operations",
+    "files are canon; ledger is derived or transactional",
+    "every task traces to a bet; every bet to a gap",
+    "no hypothesis without kill criteria",
+    "one active hypothesis per metric",
+    "verdicts come from sensors, on schedule",
+    "risk gates cannot be bought"
+  ],
+
+  <span class="k">"loop"</span>: ["sense","diff","hypothesize","fund_one","compile","build",
+           "gate","push","watch","measure","verdict","learn","sense"]
+}</pre></div>
+  <p>Bootstrapping instruction for an agent: treat the invariants as non-negotiable, the resources as the only nouns you may create, the verbs and your granted capabilities as the only ways you may touch the world, and the loop as your job description. If a proposed action cannot be expressed in this vocabulary, file an inbox request — it is outside your mandate.</p>
+</section>
+
+<footer class="wrap">
+  <p>the company loop · ontology v2 · six nouns, three verbs, five actors, three clocks, ten invariants · written 2026-07-13 · everything is files, uncertainty is priced, and the sensors — never the believers — decide.</p>
+</footer>
+
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.06});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
