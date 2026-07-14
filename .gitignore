@@ -13,3 +13,6 @@ company.db-shm
 .cronfounder/lock
 .cronfounder/site/
 .gstack/
+
+# maintainer's personal agent tooling, not part of the product
+.claude/
